@@ -137,12 +137,16 @@ class MachineAgentsAPM(JobStepBase):
                     if machine_agent_present:
                         numberNodesWithMachineAgentInstalled += 1
                     else:
+                        logging.info("machineAgentPresent NOT present!")
                         continue
 
                     # Calculate version age
                     version = semanticVersionRegex.search(node["machineAgentVersion"])[0].split(".")  # e.g. 'Server Agent v21.6.1.2 GA ...'
                     majorVersion = int(version[0])
                     minorVersion = int(version[1])
+
+                    logging.info(f'major version: {majorVersion}, minor version: {minorVersion}')
+
 
                     hostInfo["machineAgentVersions"].add((majorVersion, minorVersion))
                     application["machineAgentVersions"].append(f"{version[0]}.{version[1]}")
