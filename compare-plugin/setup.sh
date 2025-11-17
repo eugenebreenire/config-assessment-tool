@@ -1,31 +1,49 @@
+# setup.sh
+
 #!/bin/bash
+set -e
 
-# Function to check if a command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-# Check if Python 3 is installed
-if command_exists python3; then
-    echo "Python 3 is installed."
+# Detect a Python executable
+PYTHON_BIN=""
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN="python"
 else
-    echo "Python 3 is not installed. Please install Python 3 before proceeding."
-    exit 1
+  echo "Python is not installed. Please install Python 3.8+ and rerun."
+  exit 1
 fi
+
+echo "Using Python at: $(command -v $PYTHON_BIN)"
 
 # Create a virtual environment
 echo "Creating a virtual environment..."
-python3 -m venv venv
+$PYTHON_BIN -m venv venv
 
-# Activate the virtual environment
-echo "Activating the virtual environment..."
-source venv/bin/activate
+# Activate the virtual environment (POSIX shells)
+if [ -f "venv/bin/activate" ]; then
+  echo "Activating the virtual environment..."
+  # shellcheck disable=SC1091
+  source venv/bin/activate
+elif [ -f "venv/Scripts/activate" ]; then
+  echo "Activating the virtual environment (Windows)..."
+  # shellcheck disable=SC1091
+  source venv/Scripts/activate
+else
+  echo "Could not find venv activation script."
+  exit 1
+fi
 
-# Install the required packages
+# Upgrade pip/setuptools/wheel and install requirements
+echo "Upgrading pip, setuptools, and wheel..."
+python -m pip install --upgrade pip setuptools wheel
+
 echo "Installing required Python packages..."
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 
-echo "Setup is complete. You can now run the script using:"
-echo "  source venv/bin/activate"
-echo "  python3 compare_results/core.py"
-
+echo
+echo "Setup complete."
+echo "To run the app:"
+echo "  Activate venv (macOS/Linux): source venv/bin/activate"
+echo "  Activate venv (Windows, CMD/PowerShell): venv\\Scripts\\activate"
+echo "  Start the app: python core.py"
