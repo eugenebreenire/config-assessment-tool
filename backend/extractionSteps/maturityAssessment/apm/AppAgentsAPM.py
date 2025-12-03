@@ -180,43 +180,50 @@ class AppAgentsAPM(JobStepBase):
                 application["appAgentVersions"] = []
 
                 for node in application["nodes"]:
-                    app_agent_present = node.get("appAgentPresent") is True
-                    if app_agent_present and node["appAgentVersion"] in nodeVersionMap:
-                        nodeVersionMap[node["appAgentVersion"]] += 1
-                    elif app_agent_present:
-                        nodeVersionMap[node["appAgentVersion"]] = 1
+                    # Support both APIs: new (explicit flag) and old (implicit via non-empty version string)
+                    app_agent_present_flag = node.get("appAgentPresent", None)
+                    app_agent_present = (
+                        app_agent_present_flag is True
+                        or (app_agent_present_flag is None and node.get("appAgentVersion", "") != "")
+                    )
 
-                    # Calculate version age
-                    numberNodesWithAppAgentInstalled += 1
-                    if not app_agent_present:
-                        continue
+                    if app_agent_present:
+                        version_str = node.get("appAgentVersion", "")
+                        if version_str in nodeVersionMap:
+                            nodeVersionMap[version_str] += 1
+                        else:
+                            nodeVersionMap[version_str] = 1
 
-                    version = semanticVersionRegex.search(node["appAgentVersion"])[0].split(".")  # e.g. 'Server Agent v21.6.1.2 GA ...'
-                    majorVersion = int(version[0])
-                    minorVersion = int(version[1])
+                        numberNodesWithAppAgentInstalled += 1
 
-                    hostInfo["appAgentVersions"].add((majorVersion, minorVersion, node["agentType"]))
-                    application["appAgentVersions"].append(f"{node['agentType']}:{version[0]}.{version[1]}")
+                        match = semanticVersionRegex.search(version_str)
+                        if not match:
+                            continue  # Cannot parse semantic version, skip aging logic
 
-                    if majorVersion == 4:  # Agents with version 4 and below will always fail.
-                        node["appAgentAge"] = 3
-                    else:
-                        years = currYear - majorVersion
-                        if minorVersion < currMonth:
-                            years += 1
-                        node["appAgentAge"] = years
+                        version = match[0].split(".")
+                        majorVersion = int(version[0])
+                        minorVersion = int(version[1])
 
-                        if years <= 2:
-                            numberAppAgentsLessThan2YearsOld += 1
-                        if years == 1:
-                            numberAppAgentsLessThan1YearOld += 1
+                        hostInfo["appAgentVersions"].add((majorVersion, minorVersion, node.get("agentType")))
+                        application["appAgentVersions"].append(f"{node.get('agentType')}:{version[0]}.{version[1]}")
 
-                    # Determine application load
-                    if node["appAgentAvailability"] != 0:
-                        numberAppAgentsReportingData += 1
+                        if majorVersion == 4:
+                            node["appAgentAge"] = 3
+                        else:
+                            years = currYear - majorVersion
+                            if minorVersion < currMonth:
+                                years += 1
+                            node["appAgentAge"] = years
+                            if years <= 2:
+                                numberAppAgentsLessThan2YearsOld += 1
+                            if years == 1:
+                                numberAppAgentsLessThan1YearOld += 1
 
-                    if node["nodeMetricsUploadRequestsExceedingLimit"] != 0:
-                        analysisDataEvaluatedMetrics["metricLimitNotHit"] = False
+                        if node.get("appAgentAvailability", 0) != 0:
+                            numberAppAgentsReportingData += 1
+
+                        if node.get("nodeMetricsUploadRequestsExceedingLimit", 0) != 0:
+                            analysisDataEvaluatedMetrics["metricLimitNotHit"] = False
 
                 # In the case of multiple versions, will return the largest common agent count regardless of version.
                 try:
