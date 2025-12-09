@@ -120,6 +120,9 @@ class AppDService:
                 if application["name"] is None:
                     application["name"] = "null"
 
+                if application.get("description") is None:
+                    application["description"] = ""
+
         if self.applicationFilter is not None:
             pattern = re.compile(self.applicationFilter["apm"])
             for application in result.data:

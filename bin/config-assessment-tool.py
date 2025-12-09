@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import logging
 import os
-import platform
 import subprocess
 import sys
 import time
@@ -11,8 +10,15 @@ from platform import uname
 from urllib.error import URLError
 from urllib.request import urlopen
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-def run(path: str, platformStr: str, tag: str):
+from frontend.utils.docker_utils import get_image_tags, get_arch, get_version
+
+def run(path: str):
+    arch = get_arch()
+    version = get_version()
+    backend_image_tag, frontend_image_tag = get_image_tags()
+
     splash = """
                           __ _                                                              _        _              _
           ___ ___  _ __  / _(_) __ _        __ _ ___ ___  ___  ___ ___ _ __ ___   ___ _ __ | |_     | |_ ___   ___ | |
@@ -20,16 +26,16 @@ def run(path: str, platformStr: str, tag: str):
         | (_| (_) | | | |  _| | (_| |_____| (_| \__ \__ \  __/\__ \__ \ | | | | |  __/ | | | ||_____| || (_) | (_) | |
          \___\___/|_| |_|_| |_|\__, |      \__,_|___/___/\___||___/___/_| |_| |_|\___|_| |_|\__|     \__\___/ \___/|_|
                                |___/
-        """
+    """
     logging.info(splash)
 
     # Check if config-assessment-tool images exist
     if (
-        runBlockingCommand(f"docker images -q ghcr.io/appdynamics/config-assessment-tool-frontend-{platformStr}:{tag}") == ""
-        or runBlockingCommand(f"docker images -q ghcr.io/appdynamics/config-assessment-tool-backend-{platformStr}:{tag}") == ""
+        runBlockingCommand(f"docker images -q {frontend_image_tag}") == ""
+        or runBlockingCommand(f"docker images -q {backend_image_tag}") == ""
     ):
         logging.info("Necessary Docker images not found.")
-        build(platformStr, tag)
+        build()
     else:
         logging.info("Necessary Docker images found.")
 
@@ -41,14 +47,14 @@ def run(path: str, platformStr: str, tag: str):
         runBlockingCommand("pgrep -f 'FileHandler.py' | xargs kill")
 
     # stop config-assessment-tool-frontend
-    logging.info(f"Terminating config-assessment-tool-frontend-{platformStr} container if already running")
-    containerId = runBlockingCommand("docker ps -f name=config-assessment-tool-frontend-" + platformStr + ' --format "{{.ID}}"')
+    logging.info(f"Terminating config-assessment-tool-frontend-{arch} container if already running")
+    containerId = runBlockingCommand("docker ps -f name=config-assessment-tool-frontend-" + arch + ' --format "{{.ID}}"')
     if containerId:
         runBlockingCommand(f"docker container stop {containerId}")
 
     # start FileHandler
     logging.info("Starting FileHandler")
-    runNonBlockingCommand(f"{sys.executable}" + " frontend/FileHandler.py")
+    runNonBlockingCommand(f"{sys.executable} frontend/FileHandler.py")
 
     # wait for file handler to start
     while True:
@@ -62,41 +68,41 @@ def run(path: str, platformStr: str, tag: str):
         time.sleep(1)
 
     # start config-assessment-tool-frontend
-    logging.info(f"Starting config-assessment-tool-frontend-{platformStr} container")
+    logging.info(f"Starting config-assessment-tool-frontend-{arch} container")
     runNonBlockingCommand(
         f"docker run "
-        f'--name "config-assessment-tool-frontend-{platformStr}" '
+        f'--name "config-assessment-tool-frontend-{arch}" '
         f"-v /var/run/docker.sock:/var/run/docker.sock "
         f'-v "{path}/logs:/logs" '
         f'-v "{path}/output:/output" '
         f'-v "{path}/input:/input" '
         f'-e HOST_ROOT="{path}" '
-        f'-e PLATFORM_STR="{platformStr}" '
-        f'-e TAG="{tag}" '
+        f'-e PLATFORM_STR="{arch}" '
+        f'-e TAG="{version}" '
         f"-p 8501:8501 "
         f"--rm "
-        f"ghcr.io/appdynamics/config-assessment-tool-frontend-{platformStr}:{tag} &"
+        f"{frontend_image_tag} &"
     )
 
     # wait for config-assessment-tool-frontend to start
     while True:
-        logging.info(f"Waiting for config-assessment-tool-frontend-{platformStr}:{tag} to start")
+        logging.info(f"Waiting for config-assessment-tool-frontend-{arch}:{version} to start")
         try:
             if urlopen("http://localhost:8501").status == 200:
-                logging.info(f"config-assessment-tool-frontend-{platformStr}:{tag} started")
+                logging.info(f"config-assessment-tool-frontend-{arch}:{version} started")
                 break
         except (URLError, RemoteDisconnected):
             pass
         time.sleep(1)
 
     # open web browser platform specific
-    if platformStr == "windows":  # windows
+    if arch == "windows":
         runBlockingCommand("start http://localhost:8501")
-    elif "microsoft" in uname().release.lower():  # wsl
+    elif "microsoft" in uname().release.lower():
         runBlockingCommand("wslview http://localhost:8501")
-    elif "mac" in platformStr:  # mac
+    elif "macos" in arch:
         runBlockingCommand("open http://localhost:8501")
-    elif platformStr == "linux":  # linux
+    elif arch == "linux":
         runBlockingCommand("xdg-open http://localhost:8501")
     else:
         logging.info("Unsupported platform, trying to open web browser to http://localhost:8501")
@@ -109,41 +115,38 @@ def run(path: str, platformStr: str, tag: str):
             time.sleep(1)
     except KeyboardInterrupt:
         logging.info("Received KeyboardInterrupt")
-        logging.info(f"Terminating config-assessment-tool-frontend-{platformStr}:{tag} container if still running")
-        containerId = runBlockingCommand(f"docker ps -f name=config-assessment-tool-frontend-{platformStr}:{tag}" + ' --format "{{.ID}}"')
+        logging.info(f"Terminating config-assessment-tool-frontend-{arch}:{version} container if still running")
+        containerId = runBlockingCommand(f"docker ps -f name=config-assessment-tool-frontend-{arch}:{version}" + ' --format "{{.ID}}"')
         if containerId:
             runBlockingCommand(f"docker container stop {containerId}")
 
+def build():
+    backend_image_tag, frontend_image_tag = get_image_tags()
 
-# build docker images from source
-def build(platform: str, tag: str):
     if os.path.isfile("backend/Dockerfile") and os.path.isfile("frontend/Dockerfile"):
-        logging.info(f"Building ghcr.io/appdynamics/config-assessment-tool-backend-{platformStr}:{tag} from Dockerfile")
-        runBlockingCommand(f"docker build --no-cache -t ghcr.io/appdynamics/config-assessment-tool-backend-{platformStr}:{tag} -f backend/Dockerfile .")
-        logging.info(f"Building ghcr.io/appdynamics/config-assessment-tool-frontend-{platformStr}:{tag} from Dockerfile")
-        runBlockingCommand(f"docker build --no-cache -t ghcr.io/appdynamics/config-assessment-tool-frontend-{platformStr}:{tag} -f frontend/Dockerfile .")
+        logging.info(f"Building {backend_image_tag} from Dockerfile")
+        runBlockingCommand(f"docker build --no-cache -t {backend_image_tag} -f backend/Dockerfile .")
+        logging.info(f"Building {frontend_image_tag} from Dockerfile")
+        runBlockingCommand(f"docker build --no-cache -t {frontend_image_tag} -f frontend/Dockerfile .")
     else:
         logging.info("Dockerfiles not found in either backend/ or frontend/.")
         logging.info("Please either clone the full repository to build the images manually.")
 
-    # Check if config-assessment-tool images exist
+    # Check if images exist
     if (
-        runBlockingCommand(f"docker images -q ghcr.io/appdynamics/config-assessment-tool-frontend-{platformStr}:{tag}") == ""
-        or runBlockingCommand(f"docker images -q ghcr.io/appdynamics/config-assessment-tool-backend-{platformStr}:{tag}") == ""
+        runBlockingCommand(f"docker images -q {frontend_image_tag}") == ""
+        or runBlockingCommand(f"docker images -q {backend_image_tag}") == ""
     ):
         logging.info("Failed to build Docker images.")
         sys.exit(1)
 
+def pull():
+    backend_image_tag, frontend_image_tag = get_image_tags()
+    logging.info(f"Pulling {backend_image_tag}")
+    runBlockingCommand(f"docker pull {backend_image_tag}")
+    logging.info(f"Pulling {frontend_image_tag}")
+    runBlockingCommand(f"docker pull {frontend_image_tag}")
 
-# pull latest images from ghrc.io if on a unix system
-def pull(platformStr: str, tag: str):
-    logging.info(f"Pulling ghcr.io/appdynamics/config-assessment-tool-backend-{platformStr}:latest")
-    runBlockingCommand(f"docker pull ghcr.io/appdynamics/config-assessment-tool-backend-{platformStr}:latest")
-    logging.info(f"Pulling ghcr.io/appdynamics/config-assessment-tool-frontend-{platformStr}:latest")
-    runBlockingCommand(f"docker pull ghcr.io/appdynamics/config-assessment-tool-frontend-{platformStr}:latest")
-
-
-# package minimal required files
 def package():
     logging.info("Creating zip file")
     with zipfile.ZipFile("config-assessment-tool-dist.zip", "w") as zip_file:
@@ -155,8 +158,6 @@ def package():
         zip_file.write("frontend/FileHandler.py")
     logging.info("Created config-assessment-tool-dist.zip")
 
-
-# execute blocking command, gather output and return it
 def runBlockingCommand(command: str):
     output = ""
     with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=None, shell=True) as process:
@@ -166,13 +167,9 @@ def runBlockingCommand(command: str):
         output += line
     return output.strip()
 
-
-# execute non-blocking command, ignore output
 def runNonBlockingCommand(command: str):
     subprocess.Popen(command, stdout=None, stderr=None, shell=True)
 
-
-# verify current software version against GitHub release tags
 def verifySoftwareVersion() -> str:
     if sys.platform == "win32":
         latestTag = runBlockingCommand(
@@ -185,11 +182,7 @@ def verifySoftwareVersion() -> str:
 
     logging.info(f"Latest release tag from https://api.github.com/repos/appdynamics/config-assessment-tool/tags is {latestTag}")
 
-    # get local tag from VERSION file
-    localTag = "unknown"
-    if os.path.isfile("VERSION"):
-        with open("VERSION", "r") as versionFile:
-            localTag = versionFile.read().strip()
+    localTag = get_version()
 
     if latestTag != localTag:
         logging.warning(f"You are using an outdated version of the software. Current {localTag} Target {latestTag}")
@@ -199,21 +192,17 @@ def verifySoftwareVersion() -> str:
 
     return localTag
 
-
 if __name__ == "__main__":
     assert sys.version_info >= (3, 5), "Python 3.5 or higher required"
 
-    # cd to config-assessment-tool root directory
     path = os.path.realpath(f"{__file__}/../..")
     os.chdir(path)
 
-    # create logs and output directories
     if not os.path.exists("logs"):
         os.makedirs("logs")
     if not os.path.exists("output"):
         os.makedirs("output")
 
-    # init logging
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
@@ -225,27 +214,8 @@ if __name__ == "__main__":
 
     logging.info(f"Working directory is {os.getcwd()}")
 
-    tag = verifySoftwareVersion()
+    verifySoftwareVersion()
 
-    # determine platform
-    if sys.platform.lower() == "win32":  # windows
-        platformStr = "windows"
-    elif "microsoft" in uname().release.lower():  # wsl
-        platformStr = "linux"
-    elif sys.platform.lower() == "darwin":  # mac
-        platformStr = "mac"
-        if platform.processor() == "arm":
-            platformStr = "mac-m1"
-    elif sys.platform.lower() == "linux":  # linux
-        platformStr = "linux"
-    else:
-        logging.error(f"Unsupported platform {sys.platform}")
-        platformStr = "unknown"
-        exit(1)
-
-    logging.info(f"Platform: {platformStr}")
-
-    # parse command line arguments
     if len(sys.argv) == 1 or sys.argv[1] == "--help":
         msg = """
     Usage: config-assessment-tool.py [OPTIONS]
@@ -258,9 +228,9 @@ if __name__ == "__main__":
         print(msg)
         sys.exit(1)
     if sys.argv[1] == "--run":
-        run(path, platformStr, tag)
+        run(path)
     elif sys.argv[1] == "--build":
-        build(platformStr, tag)
+        build()
     elif sys.argv[1] == "--package":
         package()
     else:

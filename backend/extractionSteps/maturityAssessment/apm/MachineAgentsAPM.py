@@ -124,81 +124,53 @@ class MachineAgentsAPM(JobStepBase):
                 application["machineAgentVersions"] = []
 
                 for node in application["nodes"]:
-                    if node.get("machineAgentPresent", False):
+                    machine_agent_present = node.get("machineAgentPresent") is True
+                    app_agent_present = node.get("appAgentPresent") is True
+                    if machine_agent_present and node["machineAgentVersion"] in nodeVersionMap:
+                        nodeVersionMap[node["machineAgentVersion"]] += 1
+                    elif machine_agent_present:
+                        nodeVersionMap[node["machineAgentVersion"]] = 1
+
+                    if machine_agent_present and app_agent_present:
+                        numberMachineAgentsInstalledAlongsideAppAgents += 1
+
+                    if machine_agent_present:
                         numberNodesWithMachineAgentInstalled += 1
-
-                        # Check if an App Agent is also present to count agents installed alongside each other.
-                        # Assuming 'appAgentPresent' is always a key if 'node' is well-formed.
-                        if node["appAgentPresent"]:
-                            numberMachineAgentsInstalledAlongsideAppAgents += 1
-
-                        # Safely retrieve the machine agent version string from the nested metadata.
-                        # Using .get() with default empty dictionaries to prevent KeyError if intermediate keys are missing.
-                        machine_agent_version_str = node.get('metadata', {}).get('applicationComponentNode', {}).get('machineAgentVersion')
-
-                        if machine_agent_version_str: # Only proceed if the version string is not None or empty
-                            # Update nodeVersionMap with the retrieved version string
-                            if machine_agent_version_str in nodeVersionMap:
-                                nodeVersionMap[machine_agent_version_str] += 1
-                            else:
-                                nodeVersionMap[machine_agent_version_str] = 1
-
-                            logging.info(f'application {application["name"]} node data: {node}')
+                    else:
+                        continue
 
                             # Calculate version age
-                            match = semanticVersionRegex.search(machine_agent_version_str)
-                            if match:
-                                version = match[0].split(".")
-                                majorVersion = int(version[0])
-                                minorVersion = int(version[1])
+                    version = semanticVersionRegex.search(node["machineAgentVersion"])[0].split(".")  # e.g. 'Server Agent v21.6.1.2 GA ...'
+                    majorVersion = int(version[0])
+                    minorVersion = int(version[1])
 
-                                logging.info(f'major version: {majorVersion}, minor version: {minorVersion}')
+                    hostInfo["machineAgentVersions"].add((majorVersion, minorVersion))
+                    application["machineAgentVersions"].append(f"{version[0]}.{version[1]}")
 
-                                hostInfo["machineAgentVersions"].add((majorVersion, minorVersion))
-                                application["machineAgentVersions"].append(f"{version[0]}.{version[1]}")
-
-                                if majorVersion == 4:  # Agents with version 4 and below will always fail.
-                                    node["machineAgentAge"] = 3
-                                else:
-                                    years = currYear - majorVersion
-                                    if minorVersion < currMonth:
-                                        years += 1
-                                    node["machineAgentAge"] = years
-
-                                    if years <= 2:
-                                        numberMachineAgentsLessThan2YearsOld += 1
-                                    if years == 1:
-                                        numberMachineAgentsLessThan1YearOld += 1
-                            else:
-                                logging.warning(f"Could not parse machine agent version from '{machine_agent_version_str}' for node {node.get('name', 'unknown')}. Skipping age calculation.")
-                                node["machineAgentAge"] = None # Indicate that age couldn't be determined
-                        else:
-                            logging.warning(f"Machine agent present for node {node.get('name', 'unknown')}, but 'machineAgentVersion' is None or empty in metadata. Skipping version-dependent analysis.")
-                            node["machineAgentAge"] = None # Indicate that age couldn't be determined
-
-                        # Determine application load - this uses 'machineAgentAvailability' which is at the top level of 'node'
-                        if node.get("machineAgentAvailability", 0) != 0:
-                            numberMachineAgentsReportingData += 1
+                    if majorVersion == 4:  # Agents with version 4 and below will always fail.
+                        node["machineAgentAge"] = 3
                     else:
-                        logging.info(f"No machine agent present for node {node.get('name', 'unknown')}. Skipping machine agent specific analysis for this node.")
-                        # The original code had a 'continue' here to skip the rest of the loop for this node
-                        # if 'machineAgentPresent' was False. We maintain that behavior.
-                        continue # Skip to the next node if no machine agent is present.
+                        years = currYear - majorVersion
+                        if minorVersion < currMonth:
+                            years += 1
+                        node["machineAgentAge"] = years
+
+                        if years <= 2:
+                            numberMachineAgentsLessThan2YearsOld += 1
+                        if years == 1:
+                            numberMachineAgentsLessThan1YearOld += 1
+
+                    # Determine application load
+                    if node["machineAgentAvailability"] != 0:
+                            numberMachineAgentsReportingData += 1
 
                 # In the case of multiple versions, will return the largest common agent count regardless of version.
                 try:
-                    # Only attempt to find the max if nodeVersionMap is not empty
-                    if nodeVersionMap:
                         numberMachineAgentsRunningSameVersion = nodeVersionMap[max(nodeVersionMap, key=nodeVersionMap.get)]
-                    else:
-                        numberMachineAgentsRunningSameVersion = 0 # No machine agents, so 0 running same version
                 except ValueError:
-                    # This ValueError typically happens if max() is called on an empty sequence,
-                    # which is now explicitly handled by 'if nodeVersionMap:'. This block might be redundant but harmless.
                     logging.debug(
                         f'{hostInfo["controller"].host} - No machine agents returned for application {application["name"]}, unable to parse agent versions.'
                     )
-                    numberMachineAgentsRunningSameVersion = 0 # Ensure it's initialized even on error
 
                 # Calculate percentage of compliant nodes.
                 # Default all to bronze. Will be modified in call to 'applyThresholds'.
