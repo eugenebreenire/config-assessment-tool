@@ -8,6 +8,7 @@ from datetime import datetime
 import requests
 import streamlit as st
 from tzlocal import get_localzone
+from streamlit_modal import Modal
 
 from utils.streamlit_utils import rerun
 
@@ -134,18 +135,33 @@ def handle_run(runColumn, jobName, thresholds, debug, concurrentConnections, new
             await engine.run()
 
         try:
+            st.session_state.running_job = jobName
             asyncio.run(run_main())
         except SystemExit as e:
             if e.code == 0:
-                runColumn.success(f"Job '{jobName}' executed successfully.")
+                st.success(f"Job '{jobName}' executed successfully.")
                 time.sleep(1)
-                rerun()
             else:
-                runColumn.error(f"Job execution failed with exit code: {e.code}")
+                st.error(f"Job execution failed with exit code: {e.code}")
                 st.exception(e)
         except Exception as e:
-            runColumn.error(f"Job execution failed: {e}")
+            st.error(f"Job execution failed: {e}")
             st.exception(e)
+        finally:
+            if 'running_job' in st.session_state:
+                del st.session_state.running_job
+            rerun()
+
+def tail_file(filepath, n_lines=50):
+    """Reads the last N lines from a file."""
+    try:
+        with open(filepath, "r") as f:
+            lines = f.readlines()
+            return "".join(lines[-n_lines:])
+    except FileNotFoundError:
+        return "Log file not found."
+    except Exception as e:
+        return f"Error reading log file: {e}"
 
 # --- Main Component ---
 
@@ -214,3 +230,44 @@ def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
         handle_run(runColumn, jobName, thresholds, debug, concurrentConnections, newUsrName, newPwd, authType, dynamicCheck)
     else:
         thresholdsColumn.warning("No threshold files found in `input/thresholds`.")
+
+    # Log viewer Modal
+    log_modal = Modal(f"Logs for {jobName}", key=f"logs-modal-{jobName}", max_width=1000)
+    if st.button("Show Logs", key=f"show-logs-{jobName}"):
+        log_modal.open()
+
+    if log_modal.is_open():
+        with log_modal.container():
+            log_file = "logs/config-assessment-tool.log"
+            log_placeholder = st.empty()
+            is_running = st.session_state.get("running_job") == jobName
+
+            log_container_id = f"log-container-{jobName.replace(' ', '-')}"
+            js_autoscroll = f"""
+                <script>
+                    var elem = document.getElementById('{log_container_id}');
+                    if (elem) {{
+                        elem.scrollTop = elem.scrollHeight;
+                    }}
+                </script>
+            """
+
+            while is_running:
+                log_content = tail_file(log_file, 100)
+                log_html = f"""
+                    <div id="{log_container_id}" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background-color: #f0f2f6; font-family: monospace; white-space: pre-wrap;">{log_content}</div>
+                    {js_autoscroll}
+                """
+                log_placeholder.markdown(log_html, unsafe_allow_html=True)
+
+                if st.session_state.get("running_job") != jobName:
+                    is_running = False
+                else:
+                    time.sleep(2)
+
+            # Display final log state after run
+            log_content = tail_file(log_file, 200)
+            log_html = f"""
+                <div style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background-color: #f0f2f6; font-family: monospace; white-space: pre-wrap;">{log_content}</div>
+            """
+            log_placeholder.markdown(log_html, unsafe_allow_html=True)
