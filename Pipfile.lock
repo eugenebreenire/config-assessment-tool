@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "17d32c4166f47c50bcc3f1ad3d9bf545309e8fe803a37479f571730e9612e590"
+            "sha256": "9813bd6343ff26db8474ec2b7f22b05176283492673e8d6869bb03d3c1c16b76"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -149,6 +149,13 @@
             "index": "pypi",
             "markers": "python_version >= '3.9'",
             "version": "==8.6.1"
+        },
+        "deprecation": {
+            "hashes": [
+                "sha256:72b3bde64e5d778694b0cf68178aed03d15e15477116add3fb773e581f9518ff",
+                "sha256:a10811591210e1fb0e768a8c25517cabeabcba6f0bf96564f8ff45189f90b14a"
+            ],
+            "version": "==2.1.0"
         },
         "docker": {
             "hashes": [
@@ -1401,6 +1408,14 @@
             "index": "pypi",
             "markers": "python_version >= '3.6'",
             "version": "==1.10.0"
+        },
+        "streamlit-modal": {
+            "hashes": [
+                "sha256:3c169aed6e659fd834e3526ffac285efd77867c2e5847131c2fa9d441468a522",
+                "sha256:60dac7590fd7a168d046cc03335460ac323b060676818bf8000949a878c74386"
+            ],
+            "index": "pypi",
+            "version": "==0.1.2"
         },
         "toml": {
             "hashes": [
