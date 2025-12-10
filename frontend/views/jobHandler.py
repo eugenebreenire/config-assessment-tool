@@ -142,7 +142,6 @@ def dynamic_credentials_section(job_executed, jobName):
 def handle_run(runColumn, jobName, thresholds, debug, concurrentConnections, newUsrName, newPwd, authType, dynamicCheck, log_modal):
     runColumn.text("")
     if runColumn.button(f"Run", key=f"JobFile:{jobName}-Thresholds:{thresholds}-JobType:extract"):
-        st.session_state.running_job = jobName
         st.session_state.job_to_run_details = {
             "job_file": jobName,
             "thresholds_file": thresholds,
@@ -242,29 +241,6 @@ def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
     # This block now handles both displaying logs and running the job.
     if log_modal.is_open():
         with log_modal.container():
-            log_file = "logs/config-assessment-tool.log"
-            log_placeholder = st.empty()
-            job_details = st.session_state.get("job_to_run_details")
-
-            log_container_id = f"log-container-{jobName.replace(' ', '-')}"
-
-            def display_logs(num_lines):
-                log_content = tail_file(log_file, num_lines)
-                log_html = f'<div id="{log_container_id}" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background-color: #f0f2f6; font-family: monospace; white-space: pre-wrap; font-size: 60%;">{log_content}</div>'
-                log_placeholder.markdown(log_html, unsafe_allow_html=True)
-
-                js_autoscroll = f"""
-                    <script>
-                        setTimeout(function() {{
-                            var logContainer = document.getElementById('{log_container_id}');
-                            if (logContainer) {{
-                                logContainer.scrollTop = logContainer.scrollHeight;
-                            }}
-                        }}, 100);
-                    </script>
-                """
-                components.html(js_autoscroll, height=0)
-
             # If a job was just triggered, start it in a new process.
             if "job_to_run_details" in st.session_state and st.session_state.job_to_run_details["job_file"] == jobName:
                 details = st.session_state.pop("job_to_run_details")
@@ -284,15 +260,38 @@ def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
                 except OSError:
                     is_running = False # Process does not exist
                     del st.session_state[f"process_{jobName}"]
-                    if "running_job" in st.session_state:
-                        del st.session_state["running_job"]
 
+            log_file = "logs/config-assessment-tool.log"
+            log_placeholder = st.empty()
+            log_container_id = f"log-container-{jobName.replace(' ', '-')}"
+
+            def display_logs(num_lines, auto_scroll):
+                log_content = tail_file(log_file, num_lines)
+
+                # Log container HTML
+                log_html = f'<div id="{log_container_id}" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background-color: #f0f2f6; font-family: monospace; white-space: pre-wrap; font-size: 60%;">{log_content}</div>'
+                log_placeholder.markdown(log_html, unsafe_allow_html=True)
+
+                if auto_scroll:
+                    js_autoscroll = f"""
+                        <script>
+                            (function() {{
+                                const logContainer = document.getElementById('{log_container_id}');
+                                if (logContainer) {{
+                                    logContainer.scrollTop = logContainer.scrollHeight;
+                                }}
+                            }})();
+                        </script>
+                    """
+                    components.html(js_autoscroll, height=0)
 
             # Live-tail the logs while the process is running
-            while is_running:
-                display_logs(500)
+            if is_running:
+                display_logs(500, auto_scroll=True)
                 time.sleep(1) # Rerun every second to update logs
                 st.rerun()
-
-            # Display final log state after the job is finished
-            display_logs(1000)
+            else:
+                # Display final log state after the job is finished or when just viewing logs
+                display_logs(1000, auto_scroll=False)
+                if pid:
+                    st.markdown("<h2 style='text-align: center;'>JOB FINISHED</h2>", unsafe_allow_html=True)
