@@ -2,6 +2,8 @@ import json
 import logging
 import os
 import time
+import platform
+import subprocess
 
 import requests
 import streamlit as st
@@ -10,30 +12,68 @@ from utils.stdlib_utils import base64Encode
 from utils.streamlit_utils import rerun
 
 
+def is_running_in_container():
+    """
+    Checks if the code is running inside a container.
+    """
+    # Check for /.dockerenv file
+    if os.path.exists('/.dockerenv'):
+        return True
+    # Check for cgroup info
+    try:
+        with open('/proc/1/cgroup', 'rt') as f:
+            cgroup_content = f.read()
+            return 'docker' in cgroup_content or 'kubepods' in cgroup_content
+    except FileNotFoundError:
+        # This check is not available on all OSes (e.g., macOS, Windows)
+        pass
+    # Check for container environment variable
+    if os.environ.get('CONTAINER_RUNTIME'):
+        return True
+    return False
+
+
 def get_filehandler_host():
     host = os.environ.get("FILEHANDLER_HOST")
     if host:
         return host
-    # Detect container runtime
-    if os.path.exists("/.dockerenv") or os.path.exists("/run/.containerenv"):
+    if is_running_in_container():
         return "host.docker.internal"
     return "localhost"
 
 
 def open_folder_via_service(path: str):
-    logging.info("Opening folder via service {}".format(path))
-    host = get_filehandler_host()
-    try:
-        response = requests.post(
-            f"http://{host}:16225/open_folder",
-            json={"path": path},
-            headers={"Content-Type": "application/json"},
-            timeout=10
-        )
-        if response.status_code != 200:
-            st.error(f"Failed to open folder: {response.text}")
-    except Exception as e:
-        st.error(f"Error contacting FileHandler service: {e}")
+    if is_running_in_container():
+        logging.info("Running in container, opening folder via service: %s", path)
+        host = get_filehandler_host()
+        try:
+            response = requests.post(
+                f"http://{host}:16225/open_folder",
+                json={"path": path},
+                headers={"Content-Type": "application/json"},
+                timeout=10
+            )
+            if response.status_code != 200:
+                st.error(f"Failed to open folder: {response.text}")
+        except Exception as e:
+            st.error(f"Error contacting FileHandler service: {e}")
+    else:
+        logging.info("Running from source, opening folder directly: %s", path)
+        try:
+            abs_path = os.path.abspath(path)
+            if not os.path.isdir(abs_path):
+                st.error(f"Directory does not exist: {abs_path}")
+                return
+
+            system = platform.system()
+            if system == "Windows":
+                os.startfile(abs_path)
+            elif system == "Darwin":  # macOS
+                subprocess.run(["open", abs_path], check=True)
+            else:  # Linux
+                subprocess.run(["xdg-open", abs_path], check=True)
+        except Exception as e:
+            st.error(f"Failed to open folder directly: {e}")
 
 
 def header() -> tuple[bool, bool]:
@@ -62,15 +102,17 @@ def header() -> tuple[bool, bool]:
     st.title("config-assessment-tool")
     st.markdown("---")
 
-    if st.button("Open Jobs Folder"):
-        open_folder_via_service("input/jobs")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("Open Jobs Folder"):
+            open_folder_via_service("input/jobs")
+    with col2:
+        if st.button("Open Thresholds Folder"):
+            open_folder_via_service("input/thresholds")
+    with col3:
+        if st.button("Open Archive Folder"):
+            open_folder_via_service("output/archive")
 
-    if st.button("Open Thresholds Folder"):
-        open_folder_via_service("input/thresholds")
-
-    open_archive = st.button("Open Archive Folder - All previously generated reports date stamped")
-    if open_archive:
-        open_folder_via_service("output/archive")
 
     sample_file_path = "output/archive/sample_report.json"
     if os.path.exists(sample_file_path):

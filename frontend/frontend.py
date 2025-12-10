@@ -21,15 +21,16 @@ def main():
         concurrentNetworkConnections = 50
 
     orderedJobs = []
-    for jobName in os.listdir("input/jobs"):
-        if jobName.startswith("."):
-            continue
+    if os.path.exists("input/jobs"):
+        for jobName in os.listdir("input/jobs"):
+            if jobName.startswith(".") or not jobName.endswith(".json"):
+                continue
 
-        jobName = jobName[: len(jobName) - 5]
-        if Path(f"output/{jobName}/info.json").exists():
-            orderedJobs.insert(0, jobName)
-        else:
-            orderedJobs.append(jobName)
+            jobName = jobName[: len(jobName) - 5]
+            if Path(f"output/{jobName}/info.json").exists():
+                orderedJobs.insert(0, jobName)
+            else:
+                orderedJobs.append(jobName)
 
     for jobName in orderedJobs:
         # Directly call jobHandler without Docker image tags
