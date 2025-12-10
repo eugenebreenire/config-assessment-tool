@@ -1,34 +1,49 @@
 import json
+import logging
 import os
 import time
-from typing import Any, Tuple
-from urllib import parse
 
 import requests
 import streamlit as st
-from FileHandler import openFolder
-from utils.docker_utils import isDocker
+
 from utils.stdlib_utils import base64Encode
 from utils.streamlit_utils import rerun
 
 
+def get_filehandler_host():
+    host = os.environ.get("FILEHANDLER_HOST")
+    if host:
+        return host
+    # Detect container runtime
+    if os.path.exists("/.dockerenv") or os.path.exists("/run/.containerenv"):
+        return "host.docker.internal"
+    return "localhost"
+
+
+def open_folder_via_service(path: str):
+    logging.info("Opening folder via service {}".format(path))
+    host = get_filehandler_host()
+    try:
+        response = requests.post(
+            f"http://{host}:16225/open_folder",
+            json={"path": path},
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        if response.status_code != 200:
+            st.error(f"Failed to open folder: {response.text}")
+    except Exception as e:
+        st.error(f"Error contacting FileHandler service: {e}")
+
+
 def header() -> tuple[bool, bool]:
-    st.set_page_config(
-        page_title="config-assessment-tool",
-    )
+    st.set_page_config(page_title="config-assessment-tool")
     st.markdown(
         """
         <style>
-            h1 {
-                text-align: center;
-            }
-            .stTextArea textarea { 
-                font-family: monospace;
-                font-size: 15px; 
-            }
-            .block-container {
-                min-width: 1000px;
-            }
+            h1 { text-align: center; }
+            .stTextArea textarea { font-family: monospace; font-size: 15px; }
+            .block-container { min-width: 1000px; }
             .info-bubble {
                 display: inline-block;
                 background-color: #e0e0e0;
@@ -48,32 +63,16 @@ def header() -> tuple[bool, bool]:
     st.markdown("---")
 
     if st.button("Open Jobs Folder"):
-        if not isDocker():
-            openFolder("../input/jobs")
-        else:
-            payload = {"type": "folder", "path": "input/jobs"}
-            payload = parse.urlencode(payload)
-            requests.get(f"http://host.docker.internal:16225?{payload}")
+        open_folder_via_service("input/jobs")
 
     if st.button("Open Thresholds Folder"):
-        if not isDocker():
-            openFolder("../input/thresholds")
-        else:
-            payload = {"type": "folder", "path": "input/thresholds"}
-            payload = parse.urlencode(payload)
-            requests.get(f"http://host.docker.internal:16225?{payload}")
+        open_folder_via_service("input/thresholds")
 
     open_archive = st.button("Open Archive Folder - All previously generated reports date stamped")
     if open_archive:
-        if not isDocker():
-            openFolder("../output/archive")
-        else:
-            payload = {"type": "folder", "path": "output/archive"}
-            payload = parse.urlencode(payload)
-            requests.get(f"http://host.docker.internal:16225?{payload}")
+        open_folder_via_service("output/archive")
 
-    # Example: allow downloading a sample report file from archive folder
-    sample_file_path = "../output/archive/sample_report.json"
+    sample_file_path = "output/archive/sample_report.json"
     if os.path.exists(sample_file_path):
         with open(sample_file_path, "rb") as f:
             file_bytes = f.read()
@@ -102,7 +101,7 @@ def header() -> tuple[bool, bool]:
         pwd = pwdCol.text_input(label="password", value="hunter2", type="password")
 
         if st.form_submit_button("create"):
-            job_file_path = f"../input/jobs/{host[:host.index('.')]}.json"
+            job_file_path = f"input/jobs/{host[:host.index('.')]}.json"
             with open(job_file_path, "w", encoding="ISO-8859-1") as f:
                 json.dump(
                     [

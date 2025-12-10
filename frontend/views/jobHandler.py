@@ -1,17 +1,15 @@
 import os
 import json
 from datetime import datetime
-from urllib import parse
 
-import requests
+import asyncio
 import streamlit as st
-from docker import APIClient
 from tzlocal import get_localzone
-from utils.docker_utils import isDocker, runConfigAssessmentTool
 from FileHandler import openFolder
+from utils.streamlit_utils import rerun
 
 def get_file_path(base, name):
-    return f"{base}/{name}.json" if isDocker() else f"../{base}/{name}.json"
+    return f"{base}/{name}.json"
 
 def handle_open_jobfile(file_path, title):
     if os.path.exists(file_path):
@@ -41,12 +39,7 @@ def show_thresholds_file(thresholds):
         st.warning(f"File not found: {file_path}")
 
 def open_output_folder(jobName):
-    if not isDocker():
-        openFolder(f"../output/{jobName}")
-    else:
-        payload = {"type": "folder", "path": f"output/{jobName}"}
-        payload = parse.urlencode(payload)
-        requests.get(f"http://host.docker.internal:16225?{payload}")
+    openFolder(f"output/{jobName}")
 
 def dynamic_credentials_section(job_executed, jobName):
     dynamicCredentials = st.expander("Pass credentials dynamically (optional)")
@@ -79,21 +72,41 @@ def dynamic_credentials_section(job_executed, jobName):
     dynamicCheck = dynChckCol.checkbox("Dynamic Credentials", key=f"JobFile:{jobName}-chckCol")
     return newUsrName, newPwd, authType, dynamicCheck
 
-def handle_run(runColumn, client, jobName, thresholds, debug, concurrentConnections, newUsrName, newPwd, authType, dynamicCheck, platformStr, tag):
+def handle_run(runColumn, jobName, thresholds, debug, concurrentConnections, newUsrName, newPwd, authType, dynamicCheck):
     runColumn.text("")
     if runColumn.button(f"Run", key=f"JobFile:{jobName}-Thresholds:{thresholds}-JobType:extract"):
         username = newUsrName if dynamicCheck else None
         password = newPwd if dynamicCheck else None
         auth_method = authType if dynamicCheck else None
-        runConfigAssessmentTool(client, jobName, thresholds, debug,
-                                concurrentConnections, username, password,
-                                auth_method)
+
+        async def run_main():
+            from backend.core.Engine import Engine
+            engine = Engine(jobName, thresholds, concurrentConnections, username, password, auth_method)
+            await engine.run()
+
+        try:
+            asyncio.run(run_main())
+            runColumn.success(f"Job '{jobName}' executed successfully.")
+            rerun()
+        except SystemExit as e:
+            if e.code == 0:
+                # This is a successful exit from the backend engine. Treat as success.
+                runColumn.success(f"Job '{jobName}' executed successfully.")
+                # Rerun the script to update the UI (e.g., the 'Last Run' status)
+                rerun()
+            else:
+                # The backend exited with an error code.
+                runColumn.error(f"Job execution failed with exit code: {e.code}")
+                st.exception(e)
+        except Exception as e:
+            runColumn.error(f"Job execution failed: {e}")
+            st.exception(e)
 
 def handle_open_thresholds(col_thresholds_file, jobName, thresholds):
     if col_thresholds_file.button(f"Open Thresholds File", key=f"{jobName}-thresholds"):
         show_thresholds_file(thresholds)
 
-def jobHandler(client: APIClient, jobName: str, debug: bool, concurrentConnections: int, platformStr: str, tag: str):
+def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
     st.header(f"{jobName}")
 
     col_job_file, col_thresholds_file, col_output_folder = st.columns([1, 1, 1])
@@ -105,7 +118,7 @@ def jobHandler(client: APIClient, jobName: str, debug: bool, concurrentConnectio
     col_thresholds_file.text("")
     col_thresholds_file.text("")
 
-    info_path = f"../output/{jobName}/info.json"
+    info_path = f"output/{jobName}/info.json"
     job_executed = os.path.exists(info_path)
     if job_executed:
         col_output_folder.text("")
@@ -115,7 +128,12 @@ def jobHandler(client: APIClient, jobName: str, debug: bool, concurrentConnectio
 
     newUsrName, newPwd, authType, dynamicCheck = dynamic_credentials_section(job_executed, jobName)
 
-    thresholdsFiles = [f[:-5] for f in os.listdir("../input/thresholds")]
+    # Check if input/thresholds exists before listing
+    thresholds_dir = "input/thresholds"
+    thresholdsFiles = []
+    if os.path.exists(thresholds_dir) and os.path.isdir(thresholds_dir):
+        thresholdsFiles = [f[:-5] for f in os.listdir(thresholds_dir) if f.endswith('.json')]
+
     if jobName in thresholdsFiles:
         thresholdsFiles.remove(jobName)
         thresholdsFiles.insert(0, jobName)
@@ -126,17 +144,21 @@ def jobHandler(client: APIClient, jobName: str, debug: bool, concurrentConnectio
     thresholdsColumn, infoColumn, runColumn = st.columns([1, 1, 0.3])
     if job_executed:
         try:
-            info = json.loads(open(info_path).read())
+            with open(info_path) as f:
+                info = json.load(f)
             last_run_str = datetime.fromtimestamp(info["lastRun"], get_localzone()).strftime("%m-%d-%Y at %H:%M:%S")
             infoColumn.text("")
             infoColumn.info(f'Last Run: {last_run_str}')
-        except Exception:
+        except (IOError, json.JSONDecodeError, KeyError):
             infoColumn.text("")
-            infoColumn.warning("Job has not yet been run")
+            infoColumn.warning("Job has not yet been run or info file is invalid.")
     else:
         infoColumn.text("")
         infoColumn.warning("Job has not yet been run")
 
-    thresholds = thresholdsColumn.selectbox("Specify Thresholds File", thresholdsFiles, index=0, key=f"{jobName}-new")
-    handle_open_thresholds(col_thresholds_file, jobName, thresholds)
-    handle_run(runColumn, client, jobName, thresholds, debug, concurrentConnections, newUsrName, newPwd, authType, dynamicCheck, platformStr, tag)
+    if thresholdsFiles:
+        thresholds = thresholdsColumn.selectbox("Specify Thresholds File", thresholdsFiles, index=0, key=f"{jobName}-new")
+        handle_open_thresholds(col_thresholds_file, jobName, thresholds)
+        handle_run(runColumn, jobName, thresholds, debug, concurrentConnections, newUsrName, newPwd, authType, dynamicCheck)
+    else:
+        thresholdsColumn.warning("No threshold files found in `input/thresholds`.")

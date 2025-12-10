@@ -2,9 +2,8 @@ import logging
 import os
 import subprocess
 import sys
+import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib import parse
-
 
 def getPlatform():
     platform = sys.platform
@@ -14,28 +13,9 @@ def getPlatform():
             platform = "wsl"
     return platform
 
-
-def openFile(filename):
-    logging.info("Opening file: " + filename)
-    platform = getPlatform()
-
-    try:
-        if platform == "darwin":
-            subprocess.call(("open", filename))
-        elif platform in ["win64", "win32"]:
-            os.startfile(filename.replace("/", "\\"))
-        elif platform == "wsl":
-            subprocess.call(["wslview", filename])
-        else:  # linux variants
-            subprocess.call(("xdg-open", filename))
-    except Exception as e:
-        logging.error("Error opening file: " + str(e))
-
-
 def openFolder(path):
     logging.info("Opening folder: " + path)
     platform = getPlatform()
-
     try:
         if platform == "darwin":
             subprocess.call(["open", "--", path])
@@ -44,51 +24,54 @@ def openFolder(path):
         elif platform == "wsl":
             command = "explorer.exe `wslpath -w " + path + "`"
             subprocess.run(["bash", "-c", command])
-        else:  # linux variants
-            subprocess.call(["xdg-open", "--", path])
+        else:
+            subprocess.call(["xdg-open", path])
     except Exception as e:
         logging.error("Error opening folder: " + str(e))
 
-
 class MyServer(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-
-        query_components = dict(parse.parse_qsl(parse.urlsplit(self.path).query))
-
-        if self.path == "/ping":
-            self.wfile.write(b"pong")
-        elif "type" in query_components and query_components["type"] == "file":
-            openFile(query_components["path"])
-        elif "type" in query_components and query_components["type"] == "folder":
-            openFolder(query_components["path"])
+    def do_POST(self):
+        if self.path == "/open_folder":
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data)
+                folder_path = data.get("path")
+                if folder_path:
+                    openFolder(folder_path)
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write(b"Folder opened")
+                else:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(b"Missing folder path")
+            except Exception as e:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(str(e).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
 
     def log_message(self, format, *args):
         logging.info("%s - - [%s] %s" % (self.address_string(), self.log_date_time_string(), format % args))
-
 
 if __name__ == "__main__":
     if not os.path.exists("logs"):
         os.makedirs("logs")
     if not os.path.exists("output"):
         os.makedirs("output")
-
-    # noinspection PyArgumentList
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
         handlers=[logging.FileHandler("logs/config-assessment-tool-frontend.log"), logging.StreamHandler()],
     )
-
     hostName = "localhost"
     serverPort = 16225
-
     try:
         logging.info("Starting FileHandler on " + hostName + ":" + str(serverPort))
         webServer = HTTPServer((hostName, serverPort), MyServer)
-
         webServer.serve_forever()
     except KeyboardInterrupt:
         logging.info("Stopping FileHandler")
