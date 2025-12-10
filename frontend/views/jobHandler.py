@@ -3,16 +3,43 @@ import json
 import time
 import asyncio
 import logging
+import multiprocessing
 from datetime import datetime
 
 import requests
 import streamlit as st
 from tzlocal import get_localzone
 from streamlit_modal import Modal
+import streamlit.components.v1 as components
 
 from utils.streamlit_utils import rerun
 
 # --- Helper Functions ---
+
+def run_backend_process(job_details):
+    """Target function for the separate process to run the backend engine."""
+    # This function runs in a completely separate process.
+    # We need to re-import and initialize everything it needs.
+    from backend.core.Engine import Engine
+    from backend.util.logging_utils import initLogging
+
+    # Initialize logging for this process. It will write to the same log file.
+    initLogging(debug=job_details.get("debug", False))
+
+    async def run_main():
+        engine = Engine(
+            job_details["job_file"],
+            job_details["thresholds_file"],
+            job_details["concurrent_connections"],
+            job_details["username"],
+            job_details["password"],
+            job_details["auth_method"]
+        )
+        await engine.run()
+
+    # Run the async engine code.
+    asyncio.run(run_main())
+
 
 def is_running_in_container():
     """
@@ -44,8 +71,7 @@ def handle_open_jobfile(file_path, title):
     if os.path.exists(file_path):
         with st.expander(f"📂 {title}", expanded=True):
             with open(file_path) as f:
-                data = json.load(f)
-                st.json(data)
+                st.json(json.load(f))
     else:
         st.warning(f"File not found: {file_path}")
 
@@ -54,16 +80,7 @@ def show_thresholds_file(thresholds):
     if os.path.exists(file_path):
         with st.expander(f"📂 {thresholds}.json", expanded=True):
             with open(file_path) as f:
-                data = json.load(f)
-                formatted = json.dumps(data, indent=2)
-                st.markdown(
-                    f"""
-                    <div style="max-height: 240px; overflow-y: scroll; border: 1px solid #ccc; padding: 8px; background-color: #f9f9f9;">
-                    <pre>{formatted}</pre>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                st.json(json.load(f))
     else:
         st.warning(f"File not found: {file_path}")
 
@@ -122,35 +139,21 @@ def dynamic_credentials_section(job_executed, jobName):
     dynamicCheck = dynChckCol.checkbox("Dynamic Credentials", key=f"JobFile:{jobName}-chckCol")
     return newUsrName, newPwd, authType, dynamicCheck
 
-def handle_run(runColumn, jobName, thresholds, debug, concurrentConnections, newUsrName, newPwd, authType, dynamicCheck):
+def handle_run(runColumn, jobName, thresholds, debug, concurrentConnections, newUsrName, newPwd, authType, dynamicCheck, log_modal):
     runColumn.text("")
     if runColumn.button(f"Run", key=f"JobFile:{jobName}-Thresholds:{thresholds}-JobType:extract"):
-        username = newUsrName if dynamicCheck else None
-        password = newPwd if dynamicCheck else None
-        auth_method = authType if dynamicCheck else None
-
-        async def run_main():
-            from backend.core.Engine import Engine
-            engine = Engine(jobName, thresholds, concurrentConnections, username, password, auth_method)
-            await engine.run()
-
-        try:
-            st.session_state.running_job = jobName
-            asyncio.run(run_main())
-        except SystemExit as e:
-            if e.code == 0:
-                st.success(f"Job '{jobName}' executed successfully.")
-                time.sleep(1)
-            else:
-                st.error(f"Job execution failed with exit code: {e.code}")
-                st.exception(e)
-        except Exception as e:
-            st.error(f"Job execution failed: {e}")
-            st.exception(e)
-        finally:
-            if 'running_job' in st.session_state:
-                del st.session_state.running_job
-            rerun()
+        st.session_state.running_job = jobName
+        st.session_state.job_to_run_details = {
+            "job_file": jobName,
+            "thresholds_file": thresholds,
+            "concurrent_connections": concurrentConnections,
+            "username": newUsrName if dynamicCheck else None,
+            "password": newPwd if dynamicCheck else None,
+            "auth_method": authType if dynamicCheck else None,
+            "debug": debug
+        }
+        log_modal.open()
+        rerun()
 
 def tail_file(filepath, n_lines=50):
     """Reads the last N lines from a file."""
@@ -222,52 +225,74 @@ def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
         infoColumn.text("")
         infoColumn.warning("Job has not yet been run")
 
+    # Log viewer Modal
+    log_modal = Modal("Log output for config-assessment-tool", key=f"logs-modal-{jobName}", max_width=1000)
+    if st.button("Show Logs", key=f"show-logs-{jobName}"):
+        log_modal.open()
+
     if thresholdsFiles:
         thresholds = thresholdsColumn.selectbox("Specify Thresholds File", thresholdsFiles, index=0, key=f"{jobName}-new")
         # Connect the button in col_thresholds_file to its action here
         if col_thresholds_file.button(f"Open Thresholds File", key=f"{jobName}-thresholds"):
             show_thresholds_file(thresholds)
-        handle_run(runColumn, jobName, thresholds, debug, concurrentConnections, newUsrName, newPwd, authType, dynamicCheck)
+        handle_run(runColumn, jobName, thresholds, debug, concurrentConnections, newUsrName, newPwd, authType, dynamicCheck, log_modal)
     else:
         thresholdsColumn.warning("No threshold files found in `input/thresholds`.")
 
-    # Log viewer Modal
-    log_modal = Modal(f"Logs for {jobName}", key=f"logs-modal-{jobName}", max_width=1000)
-    if st.button("Show Logs", key=f"show-logs-{jobName}"):
-        log_modal.open()
-
+    # This block now handles both displaying logs and running the job.
     if log_modal.is_open():
         with log_modal.container():
             log_file = "logs/config-assessment-tool.log"
             log_placeholder = st.empty()
-            is_running = st.session_state.get("running_job") == jobName
+            job_details = st.session_state.get("job_to_run_details")
 
             log_container_id = f"log-container-{jobName.replace(' ', '-')}"
-            js_autoscroll = f"""
-                <script>
-                    var elem = document.getElementById('{log_container_id}');
-                    if (elem) {{
-                        elem.scrollTop = elem.scrollHeight;
-                    }}
-                </script>
-            """
 
-            while is_running:
-                log_content = tail_file(log_file, 100)
-                log_html = f"""
-                    <div id="{log_container_id}" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background-color: #f0f2f6; font-family: monospace; white-space: pre-wrap;">{log_content}</div>
-                    {js_autoscroll}
-                """
+            def display_logs(num_lines):
+                log_content = tail_file(log_file, num_lines)
+                log_html = f'<div id="{log_container_id}" style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background-color: #f0f2f6; font-family: monospace; white-space: pre-wrap; font-size: 60%;">{log_content}</div>'
                 log_placeholder.markdown(log_html, unsafe_allow_html=True)
 
-                if st.session_state.get("running_job") != jobName:
-                    is_running = False
-                else:
-                    time.sleep(2)
+                js_autoscroll = f"""
+                    <script>
+                        setTimeout(function() {{
+                            var logContainer = document.getElementById('{log_container_id}');
+                            if (logContainer) {{
+                                logContainer.scrollTop = logContainer.scrollHeight;
+                            }}
+                        }}, 100);
+                    </script>
+                """
+                components.html(js_autoscroll, height=0)
 
-            # Display final log state after run
-            log_content = tail_file(log_file, 200)
-            log_html = f"""
-                <div style="height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background-color: #f0f2f6; font-family: monospace; white-space: pre-wrap;">{log_content}</div>
-            """
-            log_placeholder.markdown(log_html, unsafe_allow_html=True)
+            # If a job was just triggered, start it in a new process.
+            if "job_to_run_details" in st.session_state and st.session_state.job_to_run_details["job_file"] == jobName:
+                details = st.session_state.pop("job_to_run_details")
+                p = multiprocessing.Process(target=run_backend_process, args=(details,))
+                p.start()
+                st.session_state[f"process_{jobName}"] = p.pid
+                logging.info(f"Started job '{jobName}' in process with PID {p.pid}")
+
+            # Check if a process is running for this job
+            is_running = False
+            pid = st.session_state.get(f"process_{jobName}")
+            if pid:
+                # A simple way to check if a process is alive on Unix-like systems
+                try:
+                    os.kill(pid, 0)
+                    is_running = True
+                except OSError:
+                    is_running = False # Process does not exist
+                    del st.session_state[f"process_{jobName}"]
+                    if "running_job" in st.session_state:
+                        del st.session_state["running_job"]
+
+
+            # Live-tail the logs while the process is running
+            while is_running:
+                display_logs(500)
+                time.sleep(1) # Rerun every second to update logs
+                st.rerun()
+
+            # Display final log state after the job is finished
+            display_logs(1000)
