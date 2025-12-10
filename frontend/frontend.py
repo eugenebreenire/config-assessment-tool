@@ -2,14 +2,18 @@ import os
 from pathlib import Path
 import streamlit as st
 
+from backend.util.logging_utils import initLogging
 from views.header import header
 from views.jobHandler import jobHandler
 
 def main():
-    if not os.path.exists("../output"):
-        os.makedirs("../output")
+    if not os.path.exists("output"):
+        os.makedirs("output")
 
     debug, throttleNetworkConnections = header()
+
+    # Initialize logging for the frontend
+    initLogging(debug)
 
     if throttleNetworkConnections:
         concurrentNetworkConnections = st.sidebar.number_input("Concurrent Network Connections", min_value=1, max_value=100, value=50)

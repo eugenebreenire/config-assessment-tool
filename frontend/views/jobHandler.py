@@ -1,17 +1,45 @@
 import os
 import json
+import time
+import asyncio
+import logging
 from datetime import datetime
 
-import asyncio
+import requests
 import streamlit as st
 from tzlocal import get_localzone
-from FileHandler import openFolder
+
 from utils.streamlit_utils import rerun
 
+# --- Helper Functions ---
+
+def is_running_in_container():
+    """
+    Checks if the code is running inside a container by inspecting
+    the environment. This works for Docker, containerd, and other
+    runtimes that use standard cgroup paths.
+    """
+    # Check for a common file created by Docker.
+    if os.path.exists('/.dockerenv'):
+        return True
+
+    # Check the cgroup of the init process for container-specific keywords.
+    try:
+        with open('/proc/1/cgroup', 'rt') as f:
+            cgroup_content = f.read()
+            if 'docker' in cgroup_content or 'kubepods' in cgroup_content:
+                return True
+    except FileNotFoundError:
+        # /proc/1/cgroup does not exist on non-Linux systems.
+        pass
+
+    return False
+
 def get_file_path(base, name):
-    return f"{base}/{name}.json"
+    return f"input/{base}/{name}.json"
 
 def handle_open_jobfile(file_path, title):
+    # This function now only displays the file content
     if os.path.exists(file_path):
         with st.expander(f"📂 {title}", expanded=True):
             with open(file_path) as f:
@@ -21,7 +49,7 @@ def handle_open_jobfile(file_path, title):
         st.warning(f"File not found: {file_path}")
 
 def show_thresholds_file(thresholds):
-    file_path = get_file_path("input/thresholds", thresholds)
+    file_path = get_file_path("thresholds", thresholds)
     if os.path.exists(file_path):
         with st.expander(f"📂 {thresholds}.json", expanded=True):
             with open(file_path) as f:
@@ -39,7 +67,28 @@ def show_thresholds_file(thresholds):
         st.warning(f"File not found: {file_path}")
 
 def open_output_folder(jobName):
-    openFolder(f"output/{jobName}")
+    """Sends a POST request to the FileHandler server to open a folder."""
+    relative_path = f"output/{jobName}"
+
+    # Dynamically determine the host based on the environment
+    if is_running_in_container():
+        # 'host.docker.internal' is a special DNS name that resolves to the host's IP.
+        default_host = "host.docker.internal"
+    else:
+        # When running locally, connect to localhost.
+        default_host = "localhost"
+
+    # Allow overriding with an environment variable for flexibility
+    file_handler_host = os.getenv("FILE_HANDLER_HOST", default_host)
+
+    url = f"http://{file_handler_host}:16225/open_folder"
+    try:
+        response = requests.post(url, json={"path": relative_path}, timeout=5)
+        response.raise_for_status()
+        logging.info(f"Successfully requested to open folder: {relative_path}")
+    except requests.exceptions.RequestException as e:
+        st.error(f"Could not connect to FileHandler server at {url}. Is it running?")
+        logging.error(f"Failed to open folder via FileHandler server: {e}")
 
 def dynamic_credentials_section(job_executed, jobName):
     dynamicCredentials = st.expander("Pass credentials dynamically (optional)")
@@ -51,8 +100,8 @@ def dynamic_credentials_section(job_executed, jobName):
         key=f"JobFile:{jobName}-authType"
     )
     labels = {
-        "token": ("API Client Username" if job_executed else "Client Name", "API Client Token" if job_executed else "Temporary Access Token"),
-        "secret": ("Client ID" if job_executed else "Client Name", "Client Secret"),
+        "token": ("API Client Username", "API Client Token"),
+        "secret": ("Client ID", "Client Secret"),
         "basic": ("New Username", "New Password")
     }
     username_label, password_label = labels.get(authType, labels["basic"])
@@ -86,38 +135,36 @@ def handle_run(runColumn, jobName, thresholds, debug, concurrentConnections, new
 
         try:
             asyncio.run(run_main())
-            runColumn.success(f"Job '{jobName}' executed successfully.")
-            rerun()
         except SystemExit as e:
             if e.code == 0:
-                # This is a successful exit from the backend engine. Treat as success.
                 runColumn.success(f"Job '{jobName}' executed successfully.")
-                # Rerun the script to update the UI (e.g., the 'Last Run' status)
+                time.sleep(1)
                 rerun()
             else:
-                # The backend exited with an error code.
                 runColumn.error(f"Job execution failed with exit code: {e.code}")
                 st.exception(e)
         except Exception as e:
             runColumn.error(f"Job execution failed: {e}")
             st.exception(e)
 
-def handle_open_thresholds(col_thresholds_file, jobName, thresholds):
-    if col_thresholds_file.button(f"Open Thresholds File", key=f"{jobName}-thresholds"):
-        show_thresholds_file(thresholds)
+# --- Main Component ---
 
 def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
     st.header(f"{jobName}")
 
     col_job_file, col_thresholds_file, col_output_folder = st.columns([1, 1, 1])
+
+    # Column 1: Job File
     col_job_file.text("")
     col_job_file.text("")
     if col_job_file.button(f"Open JobFile", key=f"{jobName}-jobfile"):
-        handle_open_jobfile(get_file_path("input/jobs", jobName), f"{jobName}.json")
+        handle_open_jobfile(f"input/jobs/{jobName}.json", f"{jobName}.json")
 
+    # Column 2: Thresholds File
     col_thresholds_file.text("")
     col_thresholds_file.text("")
 
+    # Column 3: Output Folder
     info_path = f"output/{jobName}/info.json"
     job_executed = os.path.exists(info_path)
     if job_executed:
@@ -126,9 +173,10 @@ def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
         if col_output_folder.button(f"Open Output Folder", key=f"{jobName}-outputFolder"):
             open_output_folder(jobName)
 
+    # Dynamic Credentials
     newUsrName, newPwd, authType, dynamicCheck = dynamic_credentials_section(job_executed, jobName)
 
-    # Check if input/thresholds exists before listing
+    # Thresholds Selection
     thresholds_dir = "input/thresholds"
     thresholdsFiles = []
     if os.path.exists(thresholds_dir) and os.path.isdir(thresholds_dir):
@@ -141,7 +189,9 @@ def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
         thresholdsFiles.remove("DefaultThresholds")
         thresholdsFiles.insert(0, "DefaultThresholds")
 
+    # Main Action Row
     thresholdsColumn, infoColumn, runColumn = st.columns([1, 1, 0.3])
+
     if job_executed:
         try:
             with open(info_path) as f:
@@ -158,7 +208,9 @@ def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
 
     if thresholdsFiles:
         thresholds = thresholdsColumn.selectbox("Specify Thresholds File", thresholdsFiles, index=0, key=f"{jobName}-new")
-        handle_open_thresholds(col_thresholds_file, jobName, thresholds)
+        # Connect the button in col_thresholds_file to its action here
+        if col_thresholds_file.button(f"Open Thresholds File", key=f"{jobName}-thresholds"):
+            show_thresholds_file(thresholds)
         handle_run(runColumn, jobName, thresholds, debug, concurrentConnections, newUsrName, newPwd, authType, dynamicCheck)
     else:
         thresholdsColumn.warning("No threshold files found in `input/thresholds`.")
