@@ -6,6 +6,7 @@ from backend.util.logging_utils import initLogging
 from views.header import header
 from views.jobHandler import jobHandler
 
+
 def main():
     if not os.path.exists("output"):
         os.makedirs("output")
