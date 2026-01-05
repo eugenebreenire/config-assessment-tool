@@ -82,7 +82,17 @@ case "$1" in
         fi
       fi
     else
-      export PYTHONPATH=$(pwd)
+      export PYTHONPATH="$(pwd):$(pwd)/backend"
+      if [[ $# -eq 1 ]]; then
+        echo "PYTHONPATH is: $PYTHONPATH"
+        echo "Running application in UI mode from source..."
+        echo "UI available at http://localhost:$PORT"
+        pipenv run streamlit run frontend/frontend.py
+      else
+        echo "PYTHONPATH is: $PYTHONPATH"
+        echo "Running application in backend mode from source with args: ${@:2}"
+        pipenv run python backend/backend.py "${@:2}"
+      fi
       if [[ $# -eq 1 ]]; then
         echo "Running application in UI mode from source..."
         echo "UI available at http://localhost:$PORT"

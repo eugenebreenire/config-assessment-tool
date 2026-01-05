@@ -6,8 +6,6 @@ PLATFORM := $(shell uname | tr '[:upper:]' '[:lower:]')
 LOG_DIR := logs
 OUTPUT_DIR := output
 DIST_FILE := config-assessment-tool-dist.zip
-FRONTEND_IMAGE := ghcr.io/appdynamics/config-assessment-tool-frontend-$(PLATFORM):$(VERSION)
-BACKEND_IMAGE := ghcr.io/appdynamics/config-assessment-tool-backend-$(PLATFORM):$(VERSION)
 LOG_FILES := logs/*.log config-assessment-tool-backend-joshua.log
 BACKEND_SCRIPT := backend/backend.py
 INPUT_FILE := input/jobs/DefaultJob.json
@@ -16,8 +14,7 @@ INPUT_FILE := input/jobs/DefaultJob.json
 # This ARCH is used ONLY for DOCKER_IMAGE_TAG, not for the bundle target's internal logic.
 ARCH := $(shell UNAME_S=$$(uname -s | tr -d '[:space:]'); UNAME_M=$$(uname -m | tr -d '[:space:]'); OS_PART="unknown_os"; if [ "$$UNAME_S" = "Darwin" ]; then OS_PART="macos"; fi; if [ "$$UNAME_S" = "Linux" ]; then OS_PART="linux"; fi; if echo "$$UNAME_S" | grep -q "CYGWIN" || echo "$$UNAME_S" | grep -q "MINGW"; then OS_PART="windows"; fi; ARCH_PART="unknown_arch"; if [ "$$UNAME_M" = "x86_64" ]; then ARCH_PART="x86"; fi; if [ "$$UNAME_M" = "arm64" ] || [ "$$UNAME_M" = "aarch64" ]; then ARCH_PART="arm"; fi; echo "$$OS_PART-$$ARCH_PART")
 # Docker image tag
-DOCKER_IMAGE_TAG_BACKEND := ghcr.io/appdynamics/config-assessment-tool-backend-$(ARCH):$(VERSION)
-DOCKER_IMAGE_TAG_FRONTEND := ghcr.io/appdynamics/config-assessment-tool-frontend-$(ARCH):$(VERSION)
+DOCKER_IMAGE_TAG := ghcr.io/appdynamics/config-assessment-tool-$(ARCH):$(VERSION)
 
 # Default target
 .DEFAULT_GOAL := help
@@ -27,9 +24,9 @@ help:
 	@echo "Available targets:"
 	@echo "  run                         - Run the config-assessment-tool with UI (requires Docker)"
 	@echo "  run-backend                 - Run the non-UI version"
-	@echo "  build-images                - Build Docker images required to run config-assessment-tool"
+	@echo "  build-image                 - Build a single Docker image using the root Dockerfile"
+	@echo "  build-multiarch-image       - Build and push a multi-architecture Docker image"
 	@echo "  install                     - Install Python dependencies"
-
 
 # Run the full tool (backend and frontend)
 #run: $(LOG_DIR) $(OUTPUT_DIR)
@@ -121,29 +118,19 @@ TAG := $(shell cat VERSION 2>/dev/null || echo "unknown")
 # Set docker build options
 DOCKER_BUILD_OPTS := $(if $(NO_CACHE),--no-cache,)
 
-.PHONY: build-images
-
 build:
 	@echo "Usage: make build-images COMPONENT=frontend|backend|all [NO_CACHE=true]"
 	@echo "Example: make build-images COMPONENT=frontend NO_CACHE=true"
 
+.PHONY: build-image
 
-build-images:
+build-image:
 	@echo "Building for platform: $(PLATFORM)"
 	@echo "Using tag: $(TAG)"
 	@echo "No cache: $(NO_CACHE)"
 	@$(MAKE) check-version
-ifeq ($(COMPONENT),frontend)
-	@echo "Building frontend image..."
-	docker build $(DOCKER_BUILD_OPTS) -t $(DOCKER_IMAGE_TAG_FRONTEND) -f frontend/Dockerfile .
-else ifeq ($(COMPONENT),backend)
-	@echo "Building backend image..."
-	docker build $(DOCKER_BUILD_OPTS) -t $(DOCKER_IMAGE_TAG_BACKEND) -f backend/Dockerfile .
-else
-	@echo "Building both frontend and backend images..."
-	docker build $(DOCKER_BUILD_OPTS) -t $(DOCKER_IMAGE_TAG_FRONTEND) -f frontend/Dockerfile .
-	docker build $(DOCKER_BUILD_OPTS) -t $(DOCKER_IMAGE_TAG_BACKEND) -f backend/Dockerfile .
-endif
+	@echo "Building CAT docker image ..."
+	docker build $(DOCKER_BUILD_OPTS) -t $(DOCKER_IMAGE_TAG) -f Dockerfile .
 
 # Install Python dependencies
 install:
