@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+
 
 jobs:
   build-and-push:
@@ -47,7 +49,7 @@ jobs:
           elif [ "$CHIP" = "arm64" ] || [ "$CHIP" = "aarch64" ]; then
             CHIP="arm"
           fi
-          IMAGE_TAG="ghcr.io/appdynamics/config-assessment-tool-${ARCH}-${CHIP}:$TAG"
+          IMAGE_TAG="ghcr.io/alexafshar/config-assessment-tool-${ARCH}-${CHIP}:$TAG"
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Push Docker image
