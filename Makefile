@@ -10,11 +10,14 @@ LOG_FILES := logs/*.log config-assessment-tool-backend-joshua.log
 BACKEND_SCRIPT := backend/backend.py
 INPUT_FILE := input/jobs/DefaultJob.json
 
+# Allow override of Docker repo/namespace (default: appdynamics)
+DOCKER_REPO ?= appdynamics
+
 # Determine architecture for Docker image tagging (OS-Chip)
-# This ARCH is used ONLY for DOCKER_IMAGE_TAG, not for the bundle target's internal logic.
 ARCH := $(shell UNAME_S=$$(uname -s | tr -d '[:space:]'); UNAME_M=$$(uname -m | tr -d '[:space:]'); OS_PART="unknown_os"; if [ "$$UNAME_S" = "Darwin" ]; then OS_PART="macos"; fi; if [ "$$UNAME_S" = "Linux" ]; then OS_PART="linux"; fi; if echo "$$UNAME_S" | grep -q "CYGWIN" || echo "$$UNAME_S" | grep -q "MINGW"; then OS_PART="windows"; fi; ARCH_PART="unknown_arch"; if [ "$$UNAME_M" = "x86_64" ]; then ARCH_PART="x86"; fi; if [ "$$UNAME_M" = "arm64" ] || [ "$$UNAME_M" = "aarch64" ]; then ARCH_PART="arm"; fi; echo "$$OS_PART-$$ARCH_PART")
-# Docker image tag
-DOCKER_IMAGE_TAG := ghcr.io/appdynamics/config-assessment-tool-$(ARCH):$(VERSION)
+
+# Docker image tag (namespace is dynamic)
+DOCKER_IMAGE_TAG := ghcr.io/$(DOCKER_REPO)/config-assessment-tool-$(ARCH):$(VERSION)
 
 # Default target
 .DEFAULT_GOAL := help
@@ -28,14 +31,8 @@ help:
 	@echo "  build-multiarch-image       - Build and push a multi-architecture Docker image"
 	@echo "  install                     - Install Python dependencies"
 
-# Run the full tool (backend and frontend)
-#run: $(LOG_DIR) $(OUTPUT_DIR)
-	#$(PYTHON) bin/config-assessment-tool.py --run
-
 run: $(LOG_DIR) $(OUTPUT_DIR)
 	PYTHONPATH=. $(PYTHON) bin/config-assessment-tool.py --run
-
-.PHONY: run-backend test lint clean build
 
 .PHONY: run-backend
 
@@ -65,7 +62,6 @@ run-backend: install
 		fi \
 	fi
 
-
 SHELL := /bin/bash
 
 # Detect platform string
@@ -89,7 +85,6 @@ PLATFORM := $(shell \
 		echo "unknown"; \
 	fi)
 
-
 check-version:
 	@echo "Checking software version..."
 	@unameOut=$$(uname -s 2>/dev/null || echo "unknown"); \
@@ -111,11 +106,7 @@ check-version:
 		echo "✅ You are using the latest version."; \
 	fi
 
-
-# Get tag from VERSION file
 TAG := $(shell cat VERSION 2>/dev/null || echo "unknown")
-
-# Set docker build options
 DOCKER_BUILD_OPTS := $(if $(NO_CACHE),--no-cache,)
 
 build:
@@ -132,7 +123,6 @@ build-image:
 	@echo "Building CAT docker image ..."
 	docker build $(DOCKER_BUILD_OPTS) -t $(DOCKER_IMAGE_TAG) -f Dockerfile .
 
-# Install Python dependencies
 install:
 	@if [ -f Pipfile ]; then \
 		$(PYTHON) -m pip install pipenv && pipenv install; \
@@ -142,12 +132,10 @@ install:
 		echo "No requirements.txt or Pipfile found!"; \
 	fi
 
-# Run lint checks on the project
 lint:
 	@echo "Running lint checks..."
 	@flake8 backend/ frontend/ bin/ tests/ || true
 
-# Run unit tests
 test:
 	@echo "Running tests..."
 	$(PYTHON) -m unittest discover -s tests -p "*.py"
