@@ -72,7 +72,7 @@ case "$1" in
         fi
       else
         echo "Starting container in backend mode with args: ${@:3}"
-        CONTAINER_ID=$(docker run -d --name $CONTAINER_NAME -e FILE_HANDLER_HOST=$FILE_HANDLER_HOST -p $PORT:$PORT $MOUNTS $IMAGE backend "${@:3}")
+        CONTAINER_ID=$(docker run --rm --name $CONTAINER_NAME -e FILE_HANDLER_HOST=$FILE_HANDLER_HOST -p $PORT:$PORT $MOUNTS $IMAGE backend "${@:3}")
         if [ $? -eq 0 ]; then
           echo "Container started successfully with ID: $CONTAINER_ID"
           docker logs -f $CONTAINER_ID
@@ -103,6 +103,7 @@ case "$1" in
       fi
     fi
     ;;
+
   shutdown)
     echo "Shutting down container: $CONTAINER_NAME"
     docker stop $CONTAINER_NAME >/dev/null 2>&1
@@ -111,6 +112,12 @@ case "$1" in
     echo "Stopping FileHandler process..."
     pkill -f "python.*FileHandler.py" 2>/dev/null
     echo "FileHandler stopped."
+    echo "Stopping backend process..."
+    pkill -f "python.*backend.py" 2>/dev/null
+    echo "Backend process stopped."
+    echo "Stopping Streamlit process..."
+    pkill -f "streamlit run frontend/frontend.py" 2>/dev/null
+    echo "Streamlit stopped."
     ;;
   *)
     echo "Usage:"
