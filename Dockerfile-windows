@@ -1,7 +1,7 @@
 # escape=`
 
 # Base image with Python
-FROM mcr.microsoft.com/powershell:ltsc2022 AS base
+FROM mcr.microsoft.com/windows:1809
 
 ENV PYTHON_VERSION=3.13.0
 ENV PYTHON_HOME=C:\Python313
