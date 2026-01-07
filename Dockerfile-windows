@@ -1,7 +1,8 @@
 # escape=`
 
-# Base image with Python
-FROM mcr.microsoft.com/windows:1809
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+SHELL ["powershell", "-Command"]
 
 ENV PYTHON_VERSION=3.13.0
 ENV PYTHON_HOME=C:\Python313
@@ -10,9 +11,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONFAULTHANDLER=1
 
 # Install Python 3.13
-RUN powershell -Command `
-    Invoke-WebRequest -Uri "https://www.python.org/ftp/python/%PYTHON_VERSION%/python-%PYTHON_VERSION%-amd64.exe" -OutFile python-installer.exe ; `
-    Start-Process python-installer.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 TargetDir=%PYTHON_HOME%' -Wait ; `
+RUN Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$env:PYTHON_VERSION/python-$env:PYTHON_VERSION-amd64.exe" -OutFile python-installer.exe ; `
+    Start-Process python-installer.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 TargetDir=$env:PYTHON_HOME' -Wait ; `
     Remove-Item python-installer.exe
 
 # Install pipenv and build tools
