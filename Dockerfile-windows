@@ -44,14 +44,14 @@ COPY backend /app/backend
 COPY frontend /app/frontend
 COPY VERSION .
 
-# Inline entrypoint logic as a batch file
-RUN echo @echo off > entrypoint.bat && \
-    echo if "%%1" == "backend" ( >> entrypoint.bat && \
-    echo.  shift >> entrypoint.bat && \
-    echo.  python backend\\backend.py %%* >> entrypoint.bat && \
-    echo^) else ( >> entrypoint.bat && \
-    echo.  streamlit run frontend\\frontend.py %%* >> entrypoint.bat && \
-    echo^)
+RUN powershell -Command `
+    Set-Content entrypoint.bat '@echo off' ; `
+    Add-Content entrypoint.bat 'if "%1" == "backend" (' ; `
+    Add-Content entrypoint.bat '  shift' ; `
+    Add-Content entrypoint.bat '  python backend\backend.py %*' ; `
+    Add-Content entrypoint.bat ') else (' ; `
+    Add-Content entrypoint.bat '  streamlit run frontend\frontend.py %*' ; `
+    Add-Content entrypoint.bat ')'
 
 EXPOSE 8501
 
