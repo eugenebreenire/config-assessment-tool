@@ -1,0 +1,59 @@
+# escape=`
+
+# Base image with Python
+FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
+
+ENV PYTHON_VERSION=3.13.0
+ENV PYTHON_HOME=C:\Python313
+ENV PATH=%PYTHON_HOME%;%PYTHON_HOME%\Scripts;%PATH%
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONFAULTHANDLER=1
+
+# Install Python 3.13
+RUN powershell -Command `
+    Invoke-WebRequest -Uri "https://www.python.org/ftp/python/%PYTHON_VERSION%/python-%PYTHON_VERSION%-amd64.exe" -OutFile python-installer.exe ; `
+    Start-Process python-installer.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 TargetDir=%PYTHON_HOME%' -Wait ; `
+    Remove-Item python-installer.exe
+
+# Install pipenv and build tools
+FROM base AS python-deps
+
+WORKDIR /app
+
+COPY backend /app/backend
+COPY frontend /app/frontend
+COPY Pipfile .
+COPY Pipfile.lock .
+
+RUN pip install --upgrade pip && `
+    pip install pipenv && `
+    powershell -Command "if (Test-Path 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe') { } else { Install-WindowsFeature -Name NET-Framework-45-Core }" && `
+    set PIPENV_VENV_IN_PROJECT=1 && `
+    pipenv install --deploy
+
+# Runtime stage
+FROM base AS runtime
+
+ENV PYTHONPATH="C:\\app;C:\\app\\backend"
+WORKDIR /app
+
+COPY --from=python-deps /app/.venv /app/.venv
+ENV PATH="C:\\app\\.venv\\Scripts;%PATH%"
+
+COPY backend /app/backend
+COPY frontend /app/frontend
+COPY VERSION .
+
+# Inline entrypoint logic as a batch file
+RUN echo @echo off > entrypoint.bat && \
+    echo if "%%1" == "backend" ( >> entrypoint.bat && \
+    echo.  shift >> entrypoint.bat && \
+    echo.  python backend\\backend.py %%* >> entrypoint.bat && \
+    echo^) else ( >> entrypoint.bat && \
+    echo.  streamlit run frontend\\frontend.py %%* >> entrypoint.bat && \
+    echo^)
+
+EXPOSE 8501
+
+ENTRYPOINT ["cmd", "/c", "entrypoint.bat"]
+CMD []
