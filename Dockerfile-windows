@@ -8,7 +8,7 @@ SHELL ["powershell", "-Command"]
 # Set up Python environment
 ENV PYTHON_VERSION=3.9.13
 ENV PYTHON_HOME=C:\Python39
-ENV PATH=${PYTHON_HOME};${PYTHON_HOME}\Scripts;${env:PATH}
+ENV PATH=%PYTHON_HOME%;%PYTHON_HOME%\Scripts;%PATH%
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONFAULTHANDLER=1
 
@@ -49,7 +49,7 @@ WORKDIR /app
 
 # Copy the virtual environment from the python-deps stage
 COPY --from=python-deps /app/.venv /app/.venv
-ENV PATH="C:\app\.venv\Scripts;${env:PATH}"
+ENV PATH=C:\app\.venv\Scripts;%PATH%
 
 # Copy application code and version
 COPY backend /app/backend
