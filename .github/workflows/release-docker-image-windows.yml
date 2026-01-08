@@ -2,9 +2,9 @@ name: Build and Release Windows Docker Image
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
-  workflow_dispatch:
+    branches:
+      - main
+  workflow_dispatch: # Add this event
 
 jobs:
   build-and-push:

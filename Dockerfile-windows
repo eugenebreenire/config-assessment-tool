@@ -3,8 +3,6 @@
 # Stage 1: Base image with Python installed
 FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
 
-SHELL ["powershell", "-Command"]
-
 # Set up Python environment
 ENV PYTHON_VERSION=3.9.13
 ENV PYTHON_HOME=C:\Python39
@@ -12,8 +10,9 @@ ENV PATH=%PYTHON_HOME%;%PYTHON_HOME%\Scripts;%PATH%
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONFAULTHANDLER=1
 
-# Install Python
-RUN Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$($env:PYTHON_VERSION)/python-$($env:PYTHON_VERSION)-amd64.exe" -OutFile python-installer.exe ; `
+# Install Python using powershell
+RUN powershell -Command `
+    Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$($env:PYTHON_VERSION)/python-$($env:PYTHON_VERSION)-amd64.exe" -OutFile python-installer.exe ; `
     Start-Process python-installer.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 TargetDir=$($env:PYTHON_HOME)' -Wait ; `
     Remove-Item python-installer.exe -Force
 
@@ -21,7 +20,8 @@ RUN Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$($env:PYTHON_VERS
 FROM base AS python-deps
 
 # Install Chocolatey package manager
-RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
+RUN powershell -Command `
+    Set-ExecutionPolicy Bypass -Scope Process -Force; `
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
     iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 
@@ -37,8 +37,8 @@ COPY Pipfile.lock .
 
 # Install Python dependencies using pipenv
 ENV PIPENV_VENV_IN_PROJECT=1
-RUN pip install --upgrade pip ; `
-    pip install pipenv ; `
+RUN pip install --upgrade pip && `
+    pip install pipenv && `
     pipenv install --deploy
 
 # Stage 3: Final runtime image
@@ -57,7 +57,8 @@ COPY frontend /app/frontend
 COPY VERSION .
 
 # Create the entrypoint script
-RUN Set-Content entrypoint.bat '@echo off' ; `
+RUN powershell -Command `
+    Set-Content entrypoint.bat '@echo off' ; `
     Add-Content entrypoint.bat 'if /i "%1" == "backend" (' ; `
     Add-Content entrypoint.bat '  shift' ; `
     Add-Content entrypoint.bat '  python backend\backend.py %*' ; `
