@@ -55,8 +55,8 @@ WORKDIR /app
 COPY --from=python-deps /app/.venv /app/.venv
 
 # Update PATH to include Virtual Environment scripts.
-# We do this via Registry to avoid ENV instruction clobbering system paths.
-RUN $env:PATH = 'C:\app\.venv\Scripts;' + $env:PATH; \
+# FIX: Using backtick ` for line continuation instead of backslash \
+RUN $env:PATH = 'C:\app\.venv\Scripts;' + $env:PATH; `
     [Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine)
 
 # Copy application code and version
