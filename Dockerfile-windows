@@ -3,20 +3,17 @@
 # Stage 1: Base image with Python installed
 FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
 
-# Set the default shell to PowerShell.
+# Set the default shell to PowerShell
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
-# Set up Python environment variables
 ENV PYTHON_VERSION=3.9.13
 ENV PYTHON_HOME=C:\Python39
-# IMPORTANT: Do not set ENV PATH here using ${PATH} variable substitution as it can fail
-# on Windows and clobber system paths, causing the 'powershell' command to be lost.
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONFAULTHANDLER=1
+# Explicitly set PATH to include Python and the standard Windows system paths associated with servercore
+ENV PATH="C:\Python39;C:\Python39\Scripts;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;"
 
 # Install Python
-# PrependPath=1 adds Python to the system PATH in the registry.
-# Subsequent RUN instructions will start new shells and see the updated PATH.
 RUN Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$($env:PYTHON_VERSION)/python-$($env:PYTHON_VERSION)-amd64.exe" -OutFile python-installer.exe ; `
     Start-Process python-installer.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 TargetDir=$($env:PYTHON_HOME)' -Wait ; `
     Remove-Item python-installer.exe -Force
@@ -49,15 +46,12 @@ RUN pip install --upgrade pip ; `
 FROM base AS runtime
 
 ENV PYTHONPATH="C:\app;C:\app\backend"
+# Update PATH to include the virtual environment scripts, plus the base paths
+ENV PATH="C:\app\.venv\Scripts;C:\Python39;C:\Python39\Scripts;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;"
 WORKDIR /app
 
 # Copy the virtual environment from the python-deps stage
 COPY --from=python-deps /app/.venv /app/.venv
-
-# Update PATH to include Virtual Environment scripts.
-# FIX: Using backtick ` for line continuation instead of backslash \
-RUN $env:PATH = 'C:\app\.venv\Scripts;' + $env:PATH; `
-    [Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine)
 
 # Copy application code and version
 COPY backend /app/backend
