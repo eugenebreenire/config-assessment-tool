@@ -26,6 +26,10 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
     iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 
+# FIX: Explicitly add Chocolatey to the ENV PATH for this stage.
+# We repeat the base paths because ENV overwrites the variable entirely.
+ENV PATH="C:\ProgramData\chocolatey\bin;C:\Python39;C:\Python39\Scripts;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;"
+
 # Install Visual C++ Build Tools
 RUN choco install visualcpp-build-tools -y --no-progress
 
