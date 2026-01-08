@@ -253,12 +253,13 @@ def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
             is_running = False
             pid = st.session_state.get(f"process_{jobName}")
             if pid:
-                # A simple way to check if a process is alive on Unix-like systems
+                # Check process status. Catches both standard errors and Windows-specific internal errors.
                 try:
                     os.kill(pid, 0)
                     is_running = True
-                except OSError:
-                    is_running = False # Process does not exist
+                except (OSError, SystemError):
+                    # Process not found or inaccessible (WinError 1 / ESRCH)
+                    is_running = False
                     del st.session_state[f"process_{jobName}"]
 
             log_file = "logs/config-assessment-tool.log"
