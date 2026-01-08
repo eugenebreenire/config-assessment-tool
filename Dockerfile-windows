@@ -4,18 +4,19 @@
 FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
 
 # Set the default shell to PowerShell.
-# This makes all subsequent RUN instructions execute in PowerShell.
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
-# Set up Python environment
+# Set up Python environment variables
 ENV PYTHON_VERSION=3.9.13
 ENV PYTHON_HOME=C:\Python39
-ENV PATH="${PYTHON_HOME};${PYTHON_HOME}\Scripts;${PATH}"
+# IMPORTANT: Do not set ENV PATH here using ${PATH} variable substitution as it can fail
+# on Windows and clobber system paths, causing the 'powershell' command to be lost.
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONFAULTHANDLER=1
 
 # Install Python
-# Note: Syntax uses backticks ` for line continuation and ; for separating commands
+# PrependPath=1 adds Python to the system PATH in the registry.
+# Subsequent RUN instructions will start new shells and see the updated PATH.
 RUN Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$($env:PYTHON_VERSION)/python-$($env:PYTHON_VERSION)-amd64.exe" -OutFile python-installer.exe ; `
     Start-Process python-installer.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 TargetDir=$($env:PYTHON_HOME)' -Wait ; `
     Remove-Item python-installer.exe -Force
@@ -40,7 +41,6 @@ COPY Pipfile.lock .
 
 # Install Python dependencies using pipenv
 ENV PIPENV_VENV_IN_PROJECT=1
-# Note: Using ; instead of && because older PowerShell versions do not support &&
 RUN pip install --upgrade pip ; `
     pip install pipenv ; `
     pipenv install --deploy
@@ -53,7 +53,11 @@ WORKDIR /app
 
 # Copy the virtual environment from the python-deps stage
 COPY --from=python-deps /app/.venv /app/.venv
-ENV PATH="C:\app\.venv\Scripts;${PATH}"
+
+# Update PATH to include Virtual Environment scripts.
+# We do this via Registry to avoid ENV instruction clobbering system paths.
+RUN $env:PATH = 'C:\app\.venv\Scripts;' + $env:PATH; \
+    [Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine)
 
 # Copy application code and version
 COPY backend /app/backend
