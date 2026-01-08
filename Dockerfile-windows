@@ -10,10 +10,16 @@ ENV PATH=%PYTHON_HOME%;%PYTHON_HOME%\Scripts;%PATH%
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONFAULTHANDLER=1
 
-# Install Python using powershell
-RUN powershell -Command `
-    Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$($env:PYTHON_VERSION)/python-$($env:PYTHON_VERSION)-amd64.exe" -OutFile python-installer.exe ; `
-    Start-Process python-installer.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 TargetDir=$($env:PYTHON_HOME)' -Wait ; `
+# In Dockerfile-windows
+
+# ... (other instructions like FROM, ENV)
+
+# Set the default shell to PowerShell
+SHELL ["powershell", "-Command"]
+
+# Now the RUN command can use PowerShell cmdlets directly
+RUN Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$($env:PYTHON_VERSION)/python-$($env:PYTHON_VERSION)-amd64.exe" -OutFile python-installer.exe ; \
+    Start-Process python-installer.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 TargetDir=$($env:PYTHON_HOME)' -Wait ; \
     Remove-Item python-installer.exe -Force
 
 # Stage 2: Install build tools and Python dependencies
