@@ -14,9 +14,10 @@ ENV PYTHONFAULTHANDLER=1
 ENV PATH="C:\Python39;C:\Python39\Scripts;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;"
 
 # Install Python
-# FIX: Changed ArgumentList to use double quotes " so $env:PYTHON_HOME is expanded correctly.
+# FIX: Passed ArgumentList as a comma-separated array to avoid parsing errors.
+# We distinct strings for each flag, using double quotes only for the one needing variable expansion.
 RUN Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$($env:PYTHON_VERSION)/python-$($env:PYTHON_VERSION)-amd64.exe" -OutFile python-installer.exe ; `
-    Start-Process python-installer.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 TargetDir=$($env:PYTHON_HOME)" -Wait ; `
+    Start-Process python-installer.exe -ArgumentList '/quiet', 'InstallAllUsers=1', 'PrependPath=1', "TargetDir=$($env:PYTHON_HOME)" -Wait ; `
     Remove-Item python-installer.exe -Force
 
 # Stage 2: Install build tools and Python dependencies
@@ -42,7 +43,7 @@ COPY Pipfile.lock .
 
 # Install Python dependencies using pipenv
 ENV PIPENV_VENV_IN_PROJECT=1
-# FIX: Using 'python -m pip' is safer than 'pip' on Windows to ensure the correct python env is used
+# Using 'python -m pip' is safer than 'pip' on Windows to ensure the correct python env is used
 RUN python -m pip install --upgrade pip ; `
     python -m pip install pipenv ; `
     pipenv install --deploy
