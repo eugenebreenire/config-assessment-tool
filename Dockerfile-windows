@@ -36,11 +36,10 @@ WORKDIR /app
 
 COPY --from=builder /app/requirements.txt .
 
-# 1. Upgrade pip in its own layer to avoid file locking during the next big install
-RUN pip install --no-cache-dir --upgrade pip
+# 1. Upgrade pip using 'python -m' to avoid locking the 'pip.exe' wrapper executable
+RUN python -m pip install --no-cache-dir --upgrade pip
 
-# 2. Install dependencies in a fresh layer
-# This separates the 'pip upgrade' file locks from the 'install packages' operations
+# 2. Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 3. Copy application code
