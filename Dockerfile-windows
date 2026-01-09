@@ -1,76 +1,50 @@
-# escape=`
+# Stage 1: Dependency Exporter
+# We use this stage only to convert Pipfile.lock into a requirements.txt
+FROM base AS builder
 
-# Stage 1: Base image with Python installed
-FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
-
-# Set the default shell to PowerShell
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
-
-ENV PYTHON_VERSION=3.9.13
-ENV PYTHON_HOME=C:\Python39
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONFAULTHANDLER=1
-# Explicitly set PATH to include Python and the standard Windows system paths associated with servercore
-ENV PATH="C:\Python39;C:\Python39\Scripts;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;"
-
-# Install Python
-# FIX: Passed ArgumentList as a comma-separated array to avoid parsing errors.
-# We distinct strings for each flag, using double quotes only for the one needing variable expansion.
-RUN Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$($env:PYTHON_VERSION)/python-$($env:PYTHON_VERSION)-amd64.exe" -OutFile python-installer.exe ; `
-    Start-Process python-installer.exe -ArgumentList '/quiet', 'InstallAllUsers=1', 'PrependPath=1', "TargetDir=$($env:PYTHON_HOME)" -Wait ; `
-    Remove-Item python-installer.exe -Force
-
-# Stage 2: Install build tools and Python dependencies
-FROM base AS python-deps
-
-# Install Chocolatey package manager
-RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
-    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
-    iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-
-# Explicitly add Chocolatey to the ENV PATH for this stage.
-ENV PATH="C:\ProgramData\chocolatey\bin;C:\Python39;C:\Python39\Scripts;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;"
-
-# Install Visual C++ Build Tools
-RUN choco install visualcpp-build-tools -y --no-progress
-
 WORKDIR /app
 
-COPY backend /app/backend
-COPY frontend /app/frontend
 COPY Pipfile .
 COPY Pipfile.lock .
 
-# Install Python dependencies using pipenv
-ENV PIPENV_VENV_IN_PROJECT=1
-# Using 'python -m pip' is safer than 'pip' on Windows to ensure the correct python env is used
-RUN python -m pip install --upgrade pip ; `
-    python -m pip install pipenv ; `
-    pipenv install --deploy
+# Install pipenv just to generate requirements.txt
+RUN pip install pipenv
+RUN pipenv requirements > requirements.txt
 
-# Stage 3: Final runtime image
+
+# Stage 2: Final Runtime (Clean, Single Layer)
 FROM base AS runtime
 
-ENV PYTHONPATH="C:\app;C:\app\backend"
-# Update PATH to include the virtual environment scripts, plus the base paths
-ENV PATH="C:\app\.venv\Scripts;C:\Python39;C:\Python39\Scripts;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;"
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 WORKDIR /app
 
-# Copy the virtual environment from the python-deps stage
-COPY --from=python-deps /app/.venv /app/.venv
+# 1. Copy the requirements file from the builder stage
+COPY --from=builder /app/requirements.txt .
 
-# Copy application code and version
+# 2. Install dependencies GLOBALLY (No Virtual Env)
+# This installs libraries directly into C:\Python39\Lib\site-packages
+RUN pip install --no-cache-dir --upgrade pip ; `
+    pip install --no-cache-dir -r requirements.txt
+
+# 3. Copy application code
 COPY backend /app/backend
 COPY frontend /app/frontend
 COPY VERSION .
 
-# Create the entrypoint script
+# 4. Set PYTHONPATH
+# We do NOT need to add .venv to PATH anymore.
+ENV PYTHONPATH="C:\app;C:\app\backend"
+
+# 5. Create the entrypoint script
+# We run 'python' directly. Since packages are global, this just works.
+# CHANGE: executing 'python -m streamlit' ensures we don't rely on the PATH variable finding the .exe
 RUN Set-Content entrypoint.bat '@echo off' ; `
     Add-Content entrypoint.bat 'if /i "%1" == "backend" (' ; `
     Add-Content entrypoint.bat '  shift' ; `
     Add-Content entrypoint.bat '  python backend\backend.py %*' ; `
     Add-Content entrypoint.bat ') else (' ; `
-    Add-Content entrypoint.bat '  streamlit run frontend\frontend.py %*' ; `
+    Add-Content entrypoint.bat '  python -m streamlit run frontend\frontend.py %*' ; `
     Add-Content entrypoint.bat ')'
 
 EXPOSE 8501
