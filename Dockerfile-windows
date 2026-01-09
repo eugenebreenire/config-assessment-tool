@@ -1,4 +1,8 @@
 # escape=`
+# 0. Define the 'base' alias.
+# This pulls the official Python image for Windows Server Core.
+FROM python:3.9-windowsservercore-1809 as base
+
 # Stage 1: Dependency Exporter
 # We use this stage only to convert Pipfile.lock into a requirements.txt
 FROM base AS builder
@@ -34,12 +38,9 @@ COPY frontend /app/frontend
 COPY VERSION .
 
 # 4. Set PYTHONPATH
-# We do NOT need to add .venv to PATH anymore.
 ENV PYTHONPATH="C:\app;C:\app\backend"
 
 # 5. Create the entrypoint script
-# We run 'python' directly. Since packages are global, this just works.
-# CHANGE: executing 'python -m streamlit' ensures we don't rely on the PATH variable finding the .exe
 RUN Set-Content entrypoint.bat '@echo off' ; `
     Add-Content entrypoint.bat 'if /i "%1" == "backend" (' ; `
     Add-Content entrypoint.bat '  shift' ; `
