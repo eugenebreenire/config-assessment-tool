@@ -1,34 +1,44 @@
 # escape=`
-# 0. Define the 'base' alias.
-# This pulls the official Python image for Windows Server Core.
+# 1. Define the 'base' alias using the raw Windows Server Core image.
 FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
 
-# Stage 1: Dependency Exporter
-# We use this stage only to convert Pipfile.lock into a requirements.txt
+# Set the shell to PowerShell for the installation steps
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# 2. Install Python manually
+# Since 'servercore' doesn't have Python, we download the official installer.
+ENV PYTHON_VERSION 3.9.13
+RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; `
+    Invoke-WebRequest -OutFile python-installer.exe https://www.python.org/ftp/python/$env:PYTHON_VERSION/python-$env:PYTHON_VERSION-amd64.exe ; `
+    Start-Process python-installer.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1 TargetDir=C:\Python' -Wait ; `
+    Remove-Item python-installer.exe
+
+# 3. Explicitly set PATH in Docker env so subsequent stages can find 'python' and 'pip'
+ENV PATH="C:\Python;C:\Python\Scripts;${PATH}"
+
+
+# Stage 2: Dependency Exporter
 FROM base AS builder
 
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 WORKDIR /app
 
 COPY Pipfile .
 COPY Pipfile.lock .
 
-# Install pipenv just to generate requirements.txt
+# pip is now available from the base stage
 RUN pip install pipenv
 RUN pipenv requirements > requirements.txt
 
 
-# Stage 2: Final Runtime (Clean, Single Layer)
+# Stage 3: Final Runtime
 FROM base AS runtime
 
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 WORKDIR /app
 
 # 1. Copy the requirements file from the builder stage
 COPY --from=builder /app/requirements.txt .
 
-# 2. Install dependencies GLOBALLY (No Virtual Env)
-# This installs libraries directly into C:\Python39\Lib\site-packages
+# 2. Install dependencies GLOBALLY
 RUN pip install --no-cache-dir --upgrade pip ; `
     pip install --no-cache-dir -r requirements.txt
 
