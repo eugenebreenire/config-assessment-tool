@@ -3,26 +3,21 @@
 # Stage 1: Base image with Python installed
 FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
 
-# Set the default shell to PowerShell
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 ENV PYTHON_VERSION=3.9.13
 ENV PYTHON_HOME=C:\Python39
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONFAULTHANDLER=1
-# Explicitly set PATH to include Python and the standard Windows system paths
 ENV PATH="C:\Python39;C:\Python39\Scripts;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;"
 
 # Install Python manually
-# We pass ArgumentList as a comma-separated array to avoid parsing errors.
 RUN Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$($env:PYTHON_VERSION)/python-$($env:PYTHON_VERSION)-amd64.exe" -OutFile python-installer.exe ; `
     Start-Process python-installer.exe -ArgumentList '/quiet', 'InstallAllUsers=1', 'PrependPath=1', "TargetDir=$($env:PYTHON_HOME)" -Wait ; `
     Remove-Item python-installer.exe -Force
 
 
 # Stage 2: Builder - Generate requirements.txt
-# We use this stage only to convert Pipfile.lock into a requirements.txt
-# This avoids installing pipenv or build tools in the final image
 FROM base AS builder
 
 WORKDIR /app
@@ -30,7 +25,6 @@ WORKDIR /app
 COPY Pipfile .
 COPY Pipfile.lock .
 
-# Install pipenv just to generate requirements.txt
 RUN pip install --no-cache-dir pipenv
 RUN pipenv requirements > requirements.txt
 
@@ -40,25 +34,24 @@ FROM base AS runtime
 
 WORKDIR /app
 
-# 1. Copy the requirements file from the builder stage
 COPY --from=builder /app/requirements.txt .
 
-# 2. Install dependencies GLOBALLY
-# Packages are installed directly into C:\Python39\Lib\site-packages
-RUN pip install --no-cache-dir --upgrade pip ; `
-    pip install --no-cache-dir -r requirements.txt
+# 1. Upgrade pip in its own layer to avoid file locking during the next big install
+RUN pip install --no-cache-dir --upgrade pip
 
-# 3. Copy application code and version
+# 2. Install dependencies in a fresh layer
+# This separates the 'pip upgrade' file locks from the 'install packages' operations
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 3. Copy application code
 COPY backend /app/backend
 COPY frontend /app/frontend
 COPY VERSION .
 
 # 4. Set PYTHONPATH
-# No need for .venv paths anymore
 ENV PYTHONPATH="C:\app;C:\app\backend"
 
-# 5. Create the entrypoint script
-# Using 'python -m streamlit' ensures we don't rely on the global PATH for the .exe
+# 5. Create entrypoint
 RUN Set-Content entrypoint.bat '@echo off' ; `
     Add-Content entrypoint.bat 'if /i "%1" == "backend" (' ; `
     Add-Content entrypoint.bat '  shift' ; `
