@@ -1,3 +1,4 @@
+# escape=`
 # Stage 1: Dependency Exporter
 # We use this stage only to convert Pipfile.lock into a requirements.txt
 FROM base AS builder
