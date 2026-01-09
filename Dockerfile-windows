@@ -1,7 +1,7 @@
 # escape=`
 # 0. Define the 'base' alias.
 # This pulls the official Python image for Windows Server Core.
-FROM python:3.9-windowsservercore-1809 as base
+FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
 
 # Stage 1: Dependency Exporter
 # We use this stage only to convert Pipfile.lock into a requirements.txt
