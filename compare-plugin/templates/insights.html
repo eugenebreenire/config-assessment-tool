@@ -67,12 +67,36 @@
       background: rgba(192,0,0,0.15);
       color: #ffd7d7;
     }
+
+    /* ---- Export PDF button styling ---- */
+    .btn {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: #0f1620;
+      color: #e8eef7;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .btn:hover { background: rgba(255,255,255,0.06); }
+
+    /* ---- Print to PDF styling (hides UI controls, prints cleanly) ---- */
+    @media print {
+      body { background: #ffffff !important; color: #000000 !important; }
+      .card { background: #ffffff !important; border: 1px solid #ddd !important; }
+      .no-print { display: none !important; }
+      a { color: #000 !important; text-decoration: none !important; }
+      th { color: #000 !important; }
+      canvas { max-width: 100% !important; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="row" style="justify-content:space-between; align-items:center;">
-      <a class="home-link" href="/">← Home</a>
+      <a class="home-link no-print" href="/">← Home</a>
+      <button class="btn no-print" type="button" onclick="window.print()">Export PDF</button>
     </div>
 
     <h1>Insights</h1>
