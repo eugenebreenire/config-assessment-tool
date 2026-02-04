@@ -1,6 +1,6 @@
 # Dockerfile
 
-FROM python:3.9 AS base
+FROM python:3.12 AS base
 
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8

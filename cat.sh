@@ -2,7 +2,6 @@
 
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
-export FILE_HANDLER_HOST=host.docker.internal
 
 if [[ "$OS" == "darwin" ]]; then
   OS_TAG="macos"
@@ -55,13 +54,14 @@ start_filehandler() {
 case "$1" in
   --start)
     if [[ "$2" == "docker" ]]; then
+      export FILE_HANDLER_HOST=host.docker.internal
       start_filehandler
       docker stop $CONTAINER_NAME >/dev/null 2>&1
       docker rm $CONTAINER_NAME >/dev/null 2>&1
 
       if [[ $# -eq 2 ]]; then
         echo "Starting container in UI mode..."
-        CONTAINER_ID=$(docker run -d --name $CONTAINER_NAME -e FILE_HANDLER_HOST=$FILE_HANDLER_HOST -p $PORT:$PORT $MOUNTS $IMAGE streamlit run frontend/frontend.py --server.headless=true)
+        CONTAINER_ID=$(docker run --add-host=host.docker.internal:host-gateway -d --name $CONTAINER_NAME -e FILE_HANDLER_HOST=$FILE_HANDLER_HOST -p $PORT:$PORT $MOUNTS $IMAGE streamlit run frontend/frontend.py --server.headless=true)
         if [ $? -eq 0 ]; then
           echo "Container started successfully with ID: $CONTAINER_ID"
           echo "UI available at http://localhost:$PORT"
@@ -72,13 +72,11 @@ case "$1" in
         fi
       else
         echo "Starting container in backend mode with args: ${@:3}"
-        CONTAINER_ID=$(docker run --rm --name $CONTAINER_NAME -e FILE_HANDLER_HOST=$FILE_HANDLER_HOST -p $PORT:$PORT $MOUNTS $IMAGE backend "${@:3}")
-        if [ $? -eq 0 ]; then
-          echo "Container started successfully with ID: $CONTAINER_ID"
-          docker logs -f $CONTAINER_ID
-        else
-          echo "Failed to start container."
-          exit 1
+        docker run --add-host=host.docker.internal:host-gateway --rm --name $CONTAINER_NAME -e FILE_HANDLER_HOST=$FILE_HANDLER_HOST -p $PORT:$PORT $MOUNTS $IMAGE backend "${@:3}"
+        EXIT_CODE=$?
+        if [ $EXIT_CODE -ne 0 ]; then
+          echo "Container failed with exit code: $EXIT_CODE"
+          exit $EXIT_CODE
         fi
       fi
     else
@@ -90,14 +88,6 @@ case "$1" in
         pipenv run streamlit run frontend/frontend.py
       else
         echo "PYTHONPATH is: $PYTHONPATH"
-        echo "Running application in backend mode from source with args: ${@:2}"
-        pipenv run python backend/backend.py "${@:2}"
-      fi
-      if [[ $# -eq 1 ]]; then
-        echo "Running application in UI mode from source..."
-        echo "UI available at http://localhost:$PORT"
-        pipenv run streamlit run frontend/frontend.py
-      else
         echo "Running application in backend mode from source with args: ${@:2}"
         pipenv run python backend/backend.py "${@:2}"
       fi
@@ -132,9 +122,8 @@ case "$1" in
     echo "  -t, --thresholds-file <name>      Thresholds file name (default: DefaultThresholds)"
     echo "  -d, --debug                       Enable debug logging"
     echo "  -c, --concurrent-connections <n>  Number of concurrent connections"
-    echo "  -u, --username <user>             Overwrite job file username"
-    echo "  -p, --password <pass>             Overwrite job file password"
-    echo "  -m, --auth-method <method>        Overwrite job file auth method (basic,secret,token)"
+    echo "  "
+    echo "  "
     exit 1
     ;;
 esac

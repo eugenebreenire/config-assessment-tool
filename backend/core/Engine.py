@@ -237,7 +237,7 @@ class Engine:
             logging.error("".join(traceback.TracebackException.from_exception(e).format()))
 
         await self.abortAndCleanup(
-            "",
+            "JOB FINISHED. IF USING WEB UI, YOU MAY CLOSE THIS MODAL WINDOW.",
             error=False,
         )
 
