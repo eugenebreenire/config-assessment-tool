@@ -34,7 +34,8 @@ from extractionSteps.maturityAssessment.mrum.NetworkRequestsMRUM import NetworkR
 from extractionSteps.maturityAssessment.mrum.OverallAssessmentMRUM import OverallAssessmentMRUM
 from output.Archiver import Archiver
 from output.PostProcessReport import PostProcessReport
-from output.presentations.cxPpt import createCxPpt
+# from output.presentations.cxPpt import createCxPpt
+from output.presentations.cxPptTemplate import createCxPpt as createCxPptTemplate
 from output.presentations.cxPptFsoUseCases import createCxHamUseCasePpt
 from output.reports.AgentMatrixReport import AgentMatrixReport
 from output.reports.ConfigurationAnalysisReport import ConfigurationAnalysisReport
@@ -377,7 +378,8 @@ class Engine:
                 indent=4,
             )
 
-        createCxPpt(self.jobFileName)
+        # createCxPpt(self.jobFileName)
+        createCxPptTemplate(self.jobFileName)
         createCxHamUseCasePpt(self.jobFileName)
 
         logging.info(f"----------Complete----------")
