@@ -13,6 +13,9 @@ INPUT_FILE := input/jobs/DefaultJob.json
 # Allow override of Docker repo/namespace (default: appdynamics)
 DOCKER_REPO ?= appdynamics
 
+# Default Dockerfile
+DOCKERFILE ?= Dockerfile
+
 # Determine architecture for Docker image tagging (OS-Chip)
 ARCH := $(shell UNAME_S=$$(uname -s | tr -d '[:space:]'); UNAME_M=$$(uname -m | tr -d '[:space:]'); OS_PART="unknown_os"; if [ "$$UNAME_S" = "Darwin" ]; then OS_PART="macos"; fi; if [ "$$UNAME_S" = "Linux" ]; then OS_PART="linux"; fi; if echo "$$UNAME_S" | grep -q "CYGWIN" || echo "$$UNAME_S" | grep -q "MINGW"; then OS_PART="windows"; fi; ARCH_PART="unknown_arch"; if [ "$$UNAME_M" = "x86_64" ]; then ARCH_PART="x86"; fi; if [ "$$UNAME_M" = "arm64" ] || [ "$$UNAME_M" = "aarch64" ]; then ARCH_PART="arm"; fi; echo "$$OS_PART-$$ARCH_PART")
 
@@ -121,7 +124,7 @@ build-image:
 	@echo "No cache: $(NO_CACHE)"
 	@$(MAKE) check-version
 	@echo "Building CAT docker image ..."
-	docker build $(DOCKER_BUILD_OPTS) -t $(DOCKER_IMAGE_TAG) -f Dockerfile .
+	docker build $(DOCKER_BUILD_OPTS) -t $(DOCKER_IMAGE_TAG) -f $(DOCKERFILE) .
 
 install:
 	@if [ -f Pipfile ]; then \
