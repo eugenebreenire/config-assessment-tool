@@ -1,4 +1,4 @@
-name: Build and Release Windows Docker Image
+name: docker-windows
 
 on:
   release:

@@ -1,4 +1,4 @@
-name: Build and Release Multi-Arch Docker Image
+name: docker-multiarch
 
 on:
   push:

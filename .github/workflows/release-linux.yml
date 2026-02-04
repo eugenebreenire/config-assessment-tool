@@ -1,5 +1,5 @@
 # .github/workflows/release-linux.yml
-name: Create Linux Bundle
+name: release-linux
 on:
   release:
     types: [ published ]
