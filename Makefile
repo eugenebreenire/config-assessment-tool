@@ -10,14 +10,14 @@ LOG_FILES := logs/*.log config-assessment-tool-backend-joshua.log
 BACKEND_SCRIPT := backend/backend.py
 INPUT_FILE := input/jobs/DefaultJob.json
 
-# Allow override of Docker repo/namespace (default: appdynamics)
-DOCKER_REPO ?= appdynamics
+# Allow override of Docker repo/namespace (default: alexafshar)
+DOCKER_REPO ?= alexafshar
 
 # Default Dockerfile
 DOCKERFILE ?= Dockerfile
 
 # Determine architecture for Docker image tagging (OS-Chip)
-ARCH := $(shell UNAME_S=$$(uname -s | tr -d '[:space:]'); UNAME_M=$$(uname -m | tr -d '[:space:]'); OS_PART="unknown_os"; if [ "$$UNAME_S" = "Darwin" ]; then OS_PART="macos"; fi; if [ "$$UNAME_S" = "Linux" ]; then OS_PART="linux"; fi; if echo "$$UNAME_S" | grep -q "CYGWIN" || echo "$$UNAME_S" | grep -q "MINGW"; then OS_PART="windows"; fi; ARCH_PART="unknown_arch"; if [ "$$UNAME_M" = "x86_64" ]; then ARCH_PART="x86"; fi; if [ "$$UNAME_M" = "arm64" ] || [ "$$UNAME_M" = "aarch64" ]; then ARCH_PART="arm"; fi; echo "$$OS_PART-$$ARCH_PART")
+ARCH := $(shell UNAME_S=$$(uname -s | tr -d '[:space:]'); UNAME_M=$$(uname -m | tr -d '[:space:]'); OS_PART="unknown_os"; if [ "$$UNAME_S" = "Darwin" ]; then OS_PART="macos"; fi; if [ "$$UNAME_S" = "Linux" ]; then OS_PART="linux"; fi; if echo "$$UNAME_S" | grep -q "CYGWIN" || echo "$$UNAME_S" | grep -q "MINGW"; then OS_PART="windows"; fi; ARCH_PART="unknown_arch"; if [ "$$UNAME_M" = "x86_64" ]; then ARCH_PART="amd64"; fi; if [ "$$UNAME_M" = "arm64" ] || [ "$$UNAME_M" = "aarch64" ]; then ARCH_PART="arm"; fi; echo "$$OS_PART-$$ARCH_PART")
 
 # Docker image tag (namespace is dynamic)
 DOCKER_IMAGE_TAG := ghcr.io/$(DOCKER_REPO)/config-assessment-tool-$(ARCH):$(VERSION)

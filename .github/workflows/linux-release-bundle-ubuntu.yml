@@ -20,15 +20,19 @@ jobs:
       - name: Install dependencies and Build Bundle (Ubuntu)
         id: get_bundle_name # Added an ID to this step to capture output
         run: |
+          # Ensure repository owner is lowercase for Docker tag
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_TAG="ghcr.io/${REPO_OWNER}/config-assessment-tool-ubuntu-linux:latest"
+
           # build image which builds the bundle for Ubuntu 20.x+
           # IMPORTANT: Use the new Dockerfile for Ubuntu
-          make build-image DOCKERFILE=backend/Dockerfile-ubuntu DOCKER_IMAGE_TAG=config-assessment-tool-ubuntu-linux
+          make build-image DOCKERFILE=backend/Dockerfile-ubuntu DOCKER_IMAGE_TAG=${IMAGE_TAG}
           echo "finished building docker image with bundle included"
           # copy bundle out of built image
           # The `find` command is more robust for dynamically named files
-          tarball_path=$(docker run --rm config-assessment-tool-ubuntu-linux:latest find /root/config-assessment-tool/dist/ -name "*.tgz")
+          tarball_path=$(docker run --rm ${IMAGE_TAG} find /root/config-assessment-tool/dist/ -name "*.tgz")
           echo "copying bundle out of image using $tarball_path"
-          docker cp $(docker create --name temp_image config-assessment-tool-ubuntu-linux:latest):$tarball_path ./ && docker rm temp_image
+          docker cp $(docker create --name temp_image ${IMAGE_TAG}):$tarball_path ./ && docker rm temp_image
           echo "finished copying bundle onto hosted runner at $(pwd)"
           echo "files in current directory $(ls -altr)"
           # Capture the exact bundle filename
