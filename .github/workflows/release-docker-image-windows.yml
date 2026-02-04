@@ -1,10 +1,9 @@
 name: Build and Release Windows Docker Image
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch: # Add this event
+  release:
+    types: [ published ]
+  workflow_dispatch:
 
 jobs:
   build-and-push:
