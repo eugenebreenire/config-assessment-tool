@@ -42,9 +42,9 @@ RUN ln -s /lib/x86_64-linux-gnu/libcrypt.so.1 /usr/local/lib/libcrypt.so.2 || \
 WORKDIR /root
 
 # build python from source with required flag as pyinstaller needs it
-RUN wget https://www.python.org/ftp/python/3.9.13/Python-3.9.13.tar.xz
-RUN tar -xf Python-3.9.13.tar.xz
-WORKDIR /root/Python-3.9.13
+RUN wget https://www.python.org/ftp/python/3.12.3/Python-3.12.3.tar.xz
+RUN tar -xf Python-3.12.3.tar.xz
+WORKDIR /root/Python-3.12.3
 RUN ./configure --prefix=/usr/local --with-system-ffi --enable-shared
 RUN make
 RUN make altinstall
@@ -65,17 +65,17 @@ COPY Pipfile.lock .
 RUN BUNDLE_VERSION=`cat VERSION`
 
 # Install pipx, then use it to install pipenv and pyinstaller
-# All Python-related commands now use the specific /usr/local/bin/python3.9 path
+# All Python-related commands now use the specific /usr/local/bin/python3.12 path
 # and rely on the ENV PATH for pipx to find pipenv/pyinstaller.
-RUN /usr/local/bin/python3.9 -m pip install --upgrade pip && \
-    /usr/local/bin/python3.9 -m pip install pipx && \
+RUN /usr/local/bin/python3.12 -m pip install --upgrade pip && \
+    /usr/local/bin/python3.12 -m pip install pipx && \
     pipx install pipenv && \
     pipx install pyinstaller
 
 # Now use pipenv and pyinstaller (which are now in PATH due to pipx installation)
 RUN pipenv requirements --dev > requirements.txt
-RUN /usr/local/bin/pip install -r requirements.txt
-RUN /usr/local/bin/pyinstaller --distpath=./dist/appdynamics backend/config-assessment-tool.spec
+RUN /usr/local/bin/python3.12 -m pip install -r requirements.txt
+RUN pyinstaller --distpath=./dist/appdynamics backend/config-assessment-tool.spec
 
 WORKDIR /root
 
