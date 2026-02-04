@@ -13,7 +13,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Update package lists and install build tools and dependencies for Python
 # Added 'ca-certificates' to the install list for secure downloads
 RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends \
+    apt-get install -y --fix-missing --no-install-recommends \
     build-essential \
     wget \
     zlib1g-dev \
