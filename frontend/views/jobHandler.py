@@ -121,6 +121,11 @@ def open_output_folder(jobName):
             elif system == "Darwin":  # macOS
                 subprocess.run(["open", abs_path], check=True)
             else:  # Linux
+                # Check for DISPLAY environment variable to see if UI is available
+                if not os.environ.get('DISPLAY'):
+                    st.warning(f"Cannot open folder '{abs_path}' directly: Running in a headless environment (no display detected).")
+                    logging.warning(f"Cannot open folder '{abs_path}' directly: Running in a headless environment.")
+                    return
                 subprocess.run(["xdg-open", abs_path], check=True)
         except Exception as e:
             st.error(f"Failed to open folder directly: {e}")

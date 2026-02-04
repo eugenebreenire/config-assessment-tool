@@ -81,6 +81,11 @@ case "$1" in
       fi
     else
       export PYTHONPATH="$(pwd):$(pwd)/backend"
+
+      # Ensure dependencies are installed before running
+      echo "Checking/Installing dependencies..."
+      pipenv install
+
       if [[ $# -eq 1 ]]; then
         echo "PYTHONPATH is: $PYTHONPATH"
         echo "Running application in UI mode from source..."
@@ -111,8 +116,8 @@ case "$1" in
     ;;
   *)
     echo "Usage:"
-    echo "  cat --start                # Starts CAT UI. Requires Python 3.9 installed.  UI accessible at http://localhost:8501"
-    echo "  cat --start [args]         # Starts CAT headless mode from source with [args].  Requires Python 3.9 installed".
+    echo "  cat --start                # Starts CAT UI. Requires Python 3.12 and pipenv installed.  UI accessible at http://localhost:8501"
+    echo "  cat --start [args]         # Starts CAT headless mode from source with [args].  Requires Python 3.12 & pipenv installed".
     echo "  cat --start docker         # Starts CAT UI using Docker. requires Docker. UI accessible at http://localhost:8501"
     echo "  cat --start docker [args]  # Starts CAT headless mode using Docker with [args]. Requires Docker installed."
     echo "  cat shutdown               # Stop and remove the running container and FileHandler"
