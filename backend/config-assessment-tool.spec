@@ -40,6 +40,12 @@ a = Analysis(
         ("../backend/resources/pptAssets/HybridApplicationMonitoringUseCase.json", "backend/resources/pptAssets"),
         ("../backend/resources/pptAssets/HybridApplicationMonitoringUseCase_template.pptx", "backend/resources/pptAssets"),
      	(path.join(site_packages,"pptx","templates"), "pptx/templates"), # for pptx
+
+        # Config files previously handled by manual copy
+        ("../input/jobs/DefaultJob.json", "input/jobs"),
+        ("../input/thresholds/DefaultThresholds.json", "input/thresholds"),
+        ("../backend/resources/controllerDefaults/defaultHealthRulesAPM.json", "backend/resources/controllerDefaults"),
+        ("../backend/resources/controllerDefaults/defaultHealthRulesBRUM.json", "backend/resources/controllerDefaults"),
     ],
     hiddenimports=[],
     hookspath=[],
@@ -71,20 +77,3 @@ exe = EXE(
 )
 coll = COLLECT(exe, a.binaries, a.zipfiles, a.datas, strip=False, upx=True, upx_exclude=[], name=bundle_name)
 
-import shutil, sys, os
-
-os.makedirs(f"{DISTPATH}/{bundle_name}/input/jobs")
-os.makedirs(f"{DISTPATH}/{bundle_name}/input/thresholds")
-os.makedirs(f"{DISTPATH}/{bundle_name}/backend/resources/controllerDefaults")
-shutil.copyfile("input/jobs/DefaultJob.json", f"{DISTPATH}/{bundle_name}/input/jobs/DefaultJob.json")
-shutil.copyfile("input/thresholds/DefaultThresholds.json", f"{DISTPATH}/{bundle_name}/input/thresholds/DefaultThresholds.json")
-shutil.copyfile("backend/resources/controllerDefaults/defaultHealthRulesAPM.json", f"{DISTPATH}/{bundle_name}/backend/resources/controllerDefaults/defaultHealthRulesAPM.json")
-shutil.copyfile("backend/resources/controllerDefaults/defaultHealthRulesBRUM.json", f"{DISTPATH}/{bundle_name}/backend/resources/controllerDefaults/defaultHealthRulesBRUM.json")
-shutil.copyfile("backend/resources/pptAssets/background.jpg", f"{DISTPATH}/{bundle_name}/backend/resources/pptAssets/background.jpg")
-shutil.copyfile("backend/resources/pptAssets/background_2.jpg", f"{DISTPATH}/{bundle_name}/backend/resources/pptAssets/background_2.jpg")
-shutil.copyfile("backend/resources/pptAssets/criteria.png", f"{DISTPATH}/{bundle_name}/backend/resources/pptAssets/criteria.png")
-shutil.copyfile("backend/resources/pptAssets/criteria2.png", f"{DISTPATH}/{bundle_name}/backend/resources/pptAssets/criteria2.png")
-shutil.copyfile("backend/resources/pptAssets/checkmark.png", f"{DISTPATH}/{bundle_name}/backend/resources/pptAssets/checkmark.png")
-shutil.copyfile("backend/resources/pptAssets/xmark.png", f"{DISTPATH}/{bundle_name}/backend/resources/pptAssets/xmark.png")
-shutil.copyfile("backend/resources/pptAssets/HybridApplicationMonitoringUseCase.json", f"{DISTPATH}/{bundle_name}/backend/resources/pptAssets/HybridApplicationMonitoringUseCase.json")
-shutil.copyfile("backend/resources/pptAssets/HybridApplicationMonitoringUseCase_template.pptx", f"{DISTPATH}/{bundle_name}/backend/resources/pptAssets/HybridApplicationMonitoringUseCase_template.pptx")
