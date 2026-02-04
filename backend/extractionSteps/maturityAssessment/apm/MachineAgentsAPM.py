@@ -139,7 +139,7 @@ class MachineAgentsAPM(JobStepBase):
                     else:
                         continue
 
-                    # Calculate version age
+                            # Calculate version age
                     version = semanticVersionRegex.search(node["machineAgentVersion"])[0].split(".")  # e.g. 'Server Agent v21.6.1.2 GA ...'
                     majorVersion = int(version[0])
                     minorVersion = int(version[1])
@@ -162,11 +162,11 @@ class MachineAgentsAPM(JobStepBase):
 
                     # Determine application load
                     if node["machineAgentAvailability"] != 0:
-                        numberMachineAgentsReportingData += 1
+                            numberMachineAgentsReportingData += 1
 
                 # In the case of multiple versions, will return the largest common agent count regardless of version.
                 try:
-                    numberMachineAgentsRunningSameVersion = nodeVersionMap[max(nodeVersionMap, key=nodeVersionMap.get)]
+                        numberMachineAgentsRunningSameVersion = nodeVersionMap[max(nodeVersionMap, key=nodeVersionMap.get)]
                 except ValueError:
                     logging.debug(
                         f'{hostInfo["controller"].host} - No machine agents returned for application {application["name"]}, unable to parse agent versions.'
@@ -176,19 +176,19 @@ class MachineAgentsAPM(JobStepBase):
                 # Default all to bronze. Will be modified in call to 'applyThresholds'.
                 if numberNodesWithMachineAgentInstalled != 0.0:
                     analysisDataEvaluatedMetrics["percentAgentsLessThan1YearOld"] = (
-                        numberMachineAgentsLessThan1YearOld / numberNodesWithMachineAgentInstalled * 100
+                            numberMachineAgentsLessThan1YearOld / numberNodesWithMachineAgentInstalled * 100
                     )
                     analysisDataEvaluatedMetrics["percentAgentsLessThan2YearsOld"] = (
-                        numberMachineAgentsLessThan2YearsOld / numberNodesWithMachineAgentInstalled * 100
+                            numberMachineAgentsLessThan2YearsOld / numberNodesWithMachineAgentInstalled * 100
                     )
                     analysisDataEvaluatedMetrics["percentAgentsReportingData"] = (
-                        numberMachineAgentsReportingData / numberNodesWithMachineAgentInstalled * 100
+                            numberMachineAgentsReportingData / numberNodesWithMachineAgentInstalled * 100
                     )
                     analysisDataEvaluatedMetrics["percentAgentsRunningSameVersion"] = (
-                        numberMachineAgentsRunningSameVersion / numberNodesWithMachineAgentInstalled * 100
+                            numberMachineAgentsRunningSameVersion / numberNodesWithMachineAgentInstalled * 100
                     )
                     analysisDataEvaluatedMetrics["percentAgentsInstalledAlongsideAppAgents"] = (
-                        numberMachineAgentsInstalledAlongsideAppAgents / numberNodesWithMachineAgentInstalled * 100
+                            numberMachineAgentsInstalledAlongsideAppAgents / numberNodesWithMachineAgentInstalled * 100
                     )
                 else:
                     analysisDataEvaluatedMetrics["percentAgentsLessThan1YearOld"] = 0

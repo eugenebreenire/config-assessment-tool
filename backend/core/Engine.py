@@ -32,8 +32,10 @@ from extractionSteps.maturityAssessment.brum.OverallAssessmentBRUM import Overal
 from extractionSteps.maturityAssessment.mrum.HealthRulesAndAlertingMRUM import HealthRulesAndAlertingMRUM
 from extractionSteps.maturityAssessment.mrum.NetworkRequestsMRUM import NetworkRequestsMRUM
 from extractionSteps.maturityAssessment.mrum.OverallAssessmentMRUM import OverallAssessmentMRUM
+from output.Archiver import Archiver
 from output.PostProcessReport import PostProcessReport
-from output.presentations.cxPpt import createCxPpt
+# from output.presentations.cxPpt import createCxPpt
+from output.presentations.cxPptTemplate import createCxPpt as createCxPptTemplate
 from output.presentations.cxPptFsoUseCases import createCxHamUseCasePpt
 from output.reports.AgentMatrixReport import AgentMatrixReport
 from output.reports.ConfigurationAnalysisReport import ConfigurationAnalysisReport
@@ -48,11 +50,10 @@ from util.stdlib_utils import base64Decode, base64Encode, isBase64, jsonEncoder
 
 
 class Engine:
-    def __init__(self, jobFileName: str, thresholdsFileName: str, concurrentConnections: int, username: str, password: str, car: bool):
+    def __init__(self, jobFileName: str, thresholdsFileName: str, concurrentConnections: int, user_name: str, password: str, auth_method : str):
 
         # should we run the configuration analysis report in post-processing?
         self.controllers = []
-        self.car = car
 
         if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
             # running as executable bundle
@@ -155,12 +156,13 @@ class Engine:
                 f'for host {controller["host"]}')
 
             authMethod = AuthMethod(
-                auth_method=controller["authType"],
+                # auth_method=controller["authType"],
+                auth_method=auth_method if auth_method else controller["authType"],
                 host=controller["host"],
                 port=controller["port"],
                 ssl=controller["ssl"],
                 account=controller["account"],
-                username=username if username else controller["username"],
+                username=user_name if user_name else controller["username"],
                 password=password if password else base64Decode(controller[
                                                                     "pwd"])[len("CAT-ENCODED-") :],
                 verifySsl=controller.get("verifySsl", True),
@@ -236,7 +238,7 @@ class Engine:
             logging.error("".join(traceback.TracebackException.from_exception(e).format()))
 
         await self.abortAndCleanup(
-            "",
+            "JOB FINISHED. IF USING WEB UI, YOU MAY CLOSE THIS MODAL WINDOW.",
             error=False,
         )
 
@@ -376,7 +378,8 @@ class Engine:
                 indent=4,
             )
 
-        createCxPpt(self.jobFileName)
+        # createCxPpt(self.jobFileName)
+        createCxPptTemplate(self.jobFileName)
         createCxHamUseCasePpt(self.jobFileName)
 
         logging.info(f"----------Complete----------")
@@ -422,9 +425,10 @@ class Engine:
          """
         logging.info(f"----------Post Process----------")
         commands = []
+        commands.append(ConfigurationAnalysisReport())
 
-        if self.car:
-            commands.append(ConfigurationAnalysisReport())
+        # after ALL reports generated archive a copy for safekeeping
+        commands.append(Archiver())
 
         for command in commands:
             if isinstance(command, PostProcessReport):
