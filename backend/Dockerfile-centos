@@ -52,12 +52,12 @@ RUN BUNDLE_VERSION=$(cat VERSION)
 ENV CACHE_BUSTER=20260204-fix-pyarrow
 
 RUN pipx install pipenv
-RUN pipx install pyinstaller
+# RUN pipx install pyinstaller
 RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; python3.12 -m pip install --upgrade pip
 RUN pipenv requirements --dev > requirements.txt
 RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; python3.12 -m pip install --upgrade wheel
 RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; python3.12 -m pip install --prefer-binary -r requirements.txt
-RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; pyinstaller --distpath=./dist/appdynamics backend/config-assessment-tool.spec
+RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; python3.12 -m PyInstaller --distpath=./dist/appdynamics backend/config-assessment-tool.spec
 
 WORKDIR /root
 
