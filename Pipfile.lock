@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "460ccb47fc04dc1330339fda289c287dcb71643f28a88ca3ea2bdf9779acc270"
+            "sha256": "f75b43985b2b0158abbfe02299fc2a333774f78dab93a0396dc3d0102d3b2ccf"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -346,12 +346,12 @@
         },
         "docker": {
             "hashes": [
-                "sha256:21ec4998e90dff7a7aaaa098ca8d839c7de412b89e6f6c30908372d58fecf663",
-                "sha256:9b17f0723d83c1f3418d2aa17bf90b24dbe97deda06208dd4262fa30a6ee87eb"
+                "sha256:ad8c70e6e3f8926cb8a92619b832b4ea5299e2831c14284663184e200546fa6c",
+                "sha256:c96b93b7f0a746f9e77d325bcfb87422a3d8bd4f03136ae8a85b37f1898d5fc0"
             ],
             "index": "pypi",
-            "markers": "python_version >= '3.6'",
-            "version": "==5.0.2"
+            "markers": "python_version >= '3.8'",
+            "version": "==7.1.0"
         },
         "entrypoints": {
             "hashes": [
@@ -1721,14 +1721,6 @@
             ],
             "markers": "python_version >= '3.9'",
             "version": "==2.6.3"
-        },
-        "websocket-client": {
-            "hashes": [
-                "sha256:9e813624b6eb619999a97dc7958469217c3176312b3a16a4bd1bc7e08a46ec98",
-                "sha256:af248a825037ef591efbf6ed20cc5faa03d3b47b9e5a2230a529eeee1c1fc3ef"
-            ],
-            "markers": "python_version >= '3.9'",
-            "version": "==1.9.0"
         },
         "xlsxwriter": {
             "hashes": [
