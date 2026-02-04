@@ -11,7 +11,8 @@ openpyxl = ">=3.1.0"
 uplink = ">=0.9.7"
 # CHANGED: 3.13.3 doesn't exist. Setting to * allows the latest compatible version.
 aiohttp = "*"
-docker = "==5.0.2"
+# docker = ">=5.0.3"
+docker = "*"
 # CHANGED: 4.0b1 is a beta. 5.x is stable and better for 3.12
 tzlocal = ">=4.2"
 streamlit = "1.37.0"
