@@ -1,5 +1,5 @@
 # .github/workflows/linux-release-bundle.yml
-name: Create Centos Linux Bundle
+name: Create Centos Linux Executable Bundle
 
 on:
   release:
