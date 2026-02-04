@@ -21,7 +21,7 @@ else
   exit 1
 fi
 
-REPO="ghcr.io/appdynamics/config-assessment-tool-${OS_TAG}-${ARCH_TAG}"
+REPO="ghcr.io/alexafshar/config-assessment-tool-${OS_TAG}-${ARCH_TAG}"
 
 if [[ -f VERSION ]]; then
   VERSION=$(cat VERSION)
