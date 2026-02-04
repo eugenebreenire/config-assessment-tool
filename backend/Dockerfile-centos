@@ -14,11 +14,24 @@ RUN yum install -y wget zlib-devel bzip2 bzip2-devel \
 
 WORKDIR /root
 
+# build openssl 1.1.1w from source as python 3.10+ requires it (centos 7 has 1.0.2)
+RUN wget https://www.openssl.org/source/openssl-1.1.1w.tar.gz
+RUN tar -zxf openssl-1.1.1w.tar.gz
+WORKDIR /root/openssl-1.1.1w
+RUN ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib
+RUN make
+RUN make install
+RUN echo "/usr/local/ssl/lib" > /etc/ld.so.conf.d/openssl-1.1.1.conf
+RUN ldconfig
+
+WORKDIR /root
+
 # build python from source with required flag as as pyinstaller needs it
-RUN wget https://www.python.org/ftp/python/3.9.13/Python-3.9.13.tar.xz
-RUN tar -xf Python-3.9.13.tar.xz
-WORKDIR /root/Python-3.9.13
-RUN ./configure --prefix=/usr/local --with-system-ffi --enable-shared
+RUN wget https://www.python.org/ftp/python/3.12.3/Python-3.12.3.tar.xz
+RUN tar -xf Python-3.12.3.tar.xz
+WORKDIR /root/Python-3.12.3
+# configure python to use the custom openssl
+RUN ./configure --prefix=/usr/local --with-system-ffi --enable-shared --with-openssl=/usr/local/ssl --with-openssl-rpath=auto
 RUN make
 RUN make altinstall
 RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
@@ -37,9 +50,9 @@ RUN BUNDLE_VERSION=$(cat VERSION)
 
 RUN pipx install pipenv
 RUN pipx install pyinstaller
-RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; python3.9 -m pip install --upgrade pip
+RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; python3.12 -m pip install --upgrade pip
 RUN pipenv requirements --dev > requirements.txt
-RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; pip install -r requirements.txt
+RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; python3.12 -m pip install -r requirements.txt
 RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH; pyinstaller --distpath=./dist/appdynamics backend/config-assessment-tool.spec
 
 WORKDIR /root
