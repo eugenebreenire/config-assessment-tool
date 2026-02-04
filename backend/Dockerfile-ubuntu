@@ -74,13 +74,13 @@ RUN BUNDLE_VERSION=`cat VERSION`
 # and rely on the ENV PATH for pipx to find pipenv/pyinstaller.
 RUN /usr/local/bin/python3.12 -m pip install --upgrade pip && \
     /usr/local/bin/python3.12 -m pip install pipx && \
-    pipx install pipenv && \
-    pipx install pyinstaller
+    pipx install pipenv
 
-# Now use pipenv and pyinstaller (which are now in PATH due to pipx installation)
+# Now use pipenv (in PATH) to generate requirements
 RUN pipenv requirements --dev > requirements.txt
 RUN /usr/local/bin/python3.12 -m pip install -r requirements.txt
-RUN pyinstaller --distpath=./dist/appdynamics backend/config-assessment-tool.spec
+# Run PyInstaller using the module syntax to ensure we use the one installed in the global environment
+RUN /usr/local/bin/python3.12 -m PyInstaller --distpath=./dist/appdynamics backend/config-assessment-tool.spec
 
 WORKDIR /root
 
