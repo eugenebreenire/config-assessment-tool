@@ -78,6 +78,41 @@ def open_folder_via_service(path: str):
 
 def header() -> tuple[bool, bool]:
     st.set_page_config(page_title="config-assessment-tool")
+
+    top_col1, top_col2 = st.columns([8, 1])
+    with top_col2:
+        if st.button("Shutdown 🛑", key="global_shutdown_btn", help="Stop the application server"):
+            st.markdown(
+                """
+                <div style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    background-color: rgba(0, 0, 0, 0.85);
+                    z-index: 1000000;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                ">
+                    <div style="
+                        background-color: #ffffff;
+                        padding: 40px;
+                        border-radius: 12px;
+                        text-align: center;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+                    ">
+                        <h2 style="color: #333; margin: 0 0 15px 0;">CAT tool has been shut down.</h2>
+                        <h4 style="color: #555; margin: 0; font-weight: normal;">You may close this tab.</h4>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            time.sleep(3)
+            os._exit(0)
+
     st.markdown(
         """
         <style>

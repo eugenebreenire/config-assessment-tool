@@ -4,6 +4,8 @@ import time
 import asyncio
 import logging
 import multiprocessing
+import platform
+import subprocess
 from datetime import datetime
 
 import requests
@@ -85,28 +87,44 @@ def show_thresholds_file(thresholds):
         st.warning(f"File not found: {file_path}")
 
 def open_output_folder(jobName):
-    """Sends a POST request to the FileHandler server to open a folder."""
+    """Opens a folder."""
     relative_path = f"output/{jobName}"
 
-    # Dynamically determine the host based on the environment
     if is_running_in_container():
+        # Dynamically determine the host based on the environment
         # 'host.docker.internal' is a special DNS name that resolves to the host's IP.
         default_host = "host.docker.internal"
+
+        # Allow overriding with an environment variable for flexibility
+        file_handler_host = os.getenv("FILE_HANDLER_HOST", default_host)
+
+        url = f"http://{file_handler_host}:16225/open_folder"
+        try:
+            response = requests.post(url, json={"path": relative_path}, timeout=5)
+            response.raise_for_status()
+            logging.info(f"Successfully requested to open folder: {relative_path}")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Could not connect to FileHandler server at {url}. Is it running?")
+            logging.error(f"Failed to open folder via FileHandler server: {e}")
     else:
-        # When running locally, connect to localhost.
-        default_host = "localhost"
+        # Running locally, open directly
+        logging.info("Running from source, opening folder directly: %s", relative_path)
+        try:
+            abs_path = os.path.abspath(relative_path)
+            if not os.path.isdir(abs_path):
+                st.error(f"Directory does not exist: {abs_path}")
+                return
 
-    # Allow overriding with an environment variable for flexibility
-    file_handler_host = os.getenv("FILE_HANDLER_HOST", default_host)
-
-    url = f"http://{file_handler_host}:16225/open_folder"
-    try:
-        response = requests.post(url, json={"path": relative_path}, timeout=5)
-        response.raise_for_status()
-        logging.info(f"Successfully requested to open folder: {relative_path}")
-    except requests.exceptions.RequestException as e:
-        st.error(f"Could not connect to FileHandler server at {url}. Is it running?")
-        logging.error(f"Failed to open folder via FileHandler server: {e}")
+            system = platform.system()
+            if system == "Windows":
+                os.startfile(abs_path)
+            elif system == "Darwin":  # macOS
+                subprocess.run(["open", abs_path], check=True)
+            else:  # Linux
+                subprocess.run(["xdg-open", abs_path], check=True)
+        except Exception as e:
+            st.error(f"Failed to open folder directly: {e}")
+            logging.error(f"Failed to open folder directly: {e}")
 
 def dynamic_credentials_section(job_executed, jobName):
     dynamicCredentials = st.expander("Pass credentials dynamically (optional)")
@@ -225,7 +243,25 @@ def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
         infoColumn.warning("Job has not yet been run")
 
     # Log viewer Modal
-    log_modal = Modal("Log output for config-assessment-tool", key=f"logs-modal-{jobName}", max_width=1000)
+    modal_title = "Log output for config-assessment-tool"
+
+    # Check if job represents a running process to determine title state
+    pid_peek = st.session_state.get(f"process_{jobName}")
+    is_running_peek = False
+    if pid_peek:
+        try:
+            os.kill(pid_peek, 0)
+            is_running_peek = True
+        except (OSError, SystemError):
+            is_running_peek = False
+
+    if not is_running_peek:
+        # Check if the logs show completion
+        log_peek = tail_file("logs/config-assessment-tool.log", 50)
+        if "----------Complete----------" in log_peek:
+            modal_title = "Log output for config-assessment-tool. JOB FINISHED! You may close the window"
+
+    log_modal = Modal(modal_title, key=f"logs-modal-{jobName}", max_width=1000)
     if st.button("Show Logs", key=f"show-logs-{jobName}"):
         log_modal.open()
 
@@ -277,14 +313,21 @@ def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
                     js_autoscroll = f"""
                         <script>
                             (function() {{
-                                const logContainer = document.getElementById('{log_container_id}');
-                                if (logContainer) {{
-                                    logContainer.scrollTop = logContainer.scrollHeight;
-                                }}
+                                setTimeout(function() {{
+                                    try {{
+                                        const logContainer = window.parent.document.getElementById('{log_container_id}');
+                                        if (logContainer) {{
+                                            logContainer.scrollTop = logContainer.scrollHeight;
+                                        }}
+                                    }} catch (e) {{
+                                        console.log("Could not scroll log container: " + e);
+                                    }}
+                                }}, 100);
                             }})();
                         </script>
                     """
                     components.html(js_autoscroll, height=0)
+                return log_content
 
             # Live-tail the logs while the process is running
             if is_running:
@@ -293,6 +336,15 @@ def jobHandler(jobName: str, debug: bool, concurrentConnections: int):
                 st.rerun()
             else:
                 # Display final log state after the job is finished or when just viewing logs
-                display_logs(1000, auto_scroll=False)
-                if pid:
-                    st.markdown("<h2 style='text-align: center;'>JOB FINISHED</h2>", unsafe_allow_html=True)
+                log_content = display_logs(1000, auto_scroll=True)
+                if "----------Complete----------" in log_content:
+                    st.markdown(
+                        """
+                        <div style='text-align: center; margin-top: 10px;'>
+                            <h2 style='color: green; margin-bottom: 0px;'>Job Finished!</h2>
+                            <p style='font-size: 1.2em; color: #555;'>You may close this window.</p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+

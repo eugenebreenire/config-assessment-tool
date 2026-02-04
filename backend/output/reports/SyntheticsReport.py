@@ -44,7 +44,7 @@ class SyntheticsReport(ReportBase):
                         numberOfWebDriverCalls = 0
                     else:
                         script = syntheticJob["config"]["script"]["script"]
-                        result = re.findall("driver\..+\(.+\)", script)
+                        result = re.findall(r"driver\..+\(.+\)", script)
                         numberOfWebDriverCalls = len(result)
 
                     allSyntheticJobs.append(
