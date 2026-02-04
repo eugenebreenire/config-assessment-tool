@@ -5,11 +5,11 @@ FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
-ENV PYTHON_VERSION=3.9.13
-ENV PYTHON_HOME=C:\Python39
+ENV PYTHON_VERSION=3.12.3
+ENV PYTHON_HOME=C:\Python312
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONFAULTHANDLER=1
-ENV PATH="C:\Python39;C:\Python39\Scripts;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;"
+ENV PATH="C:\Python312;C:\Python312\Scripts;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;"
 
 # Install Python manually
 RUN Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$($env:PYTHON_VERSION)/python-$($env:PYTHON_VERSION)-amd64.exe" -OutFile python-installer.exe ; `
