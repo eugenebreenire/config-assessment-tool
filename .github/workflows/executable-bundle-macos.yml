@@ -1,5 +1,5 @@
 # .github/workflows/release-mac-os-x.yml
-name: Create macOS Bundle
+name: Create MacOS Executable Bundle
 on:
   release:
     types: [published]
