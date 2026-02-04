@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Install dependencies and Build Bundle (Ubuntu)
         id: get_bundle_name # Added an ID to this step to capture output
