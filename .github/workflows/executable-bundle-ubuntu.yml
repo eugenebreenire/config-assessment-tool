@@ -1,5 +1,5 @@
 # .github/workflows/linux-release-bundle-ubuntu.yml
-name: Create Ubuntu Linux Executable Bundle
+name: executable-bundle-ubuntu
 
 on:
   release:

@@ -1,4 +1,4 @@
-name: Build and Release Linux Docker Image
+name: docker-linux
 
 on:
   push:
