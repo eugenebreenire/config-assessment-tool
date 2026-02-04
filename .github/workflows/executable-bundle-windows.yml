@@ -1,5 +1,5 @@
 # .github/workflows/windows-release-bundle.yml
-name: Create Windows Bundle
+name: Create Windows Executable Bundle
 
 on:
   release:
