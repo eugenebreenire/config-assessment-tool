@@ -44,6 +44,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}-linux-amd64
+          provenance: false
 
   build-windows:
     runs-on: windows-latest
