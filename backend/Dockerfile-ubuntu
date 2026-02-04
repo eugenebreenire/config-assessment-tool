@@ -52,7 +52,7 @@ RUN make altinstall
 # Set persistent environment variables for LD_LIBRARY_PATH and PATH
 # LD_LIBRARY_PATH is crucial for dynamically linked Python libraries
 # PATH is needed for pipx and the tools it installs (pipenv, pyinstaller)
-ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
+ENV LD_LIBRARY_PATH="/usr/local/lib"
 ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /root/config-assessment-tool
