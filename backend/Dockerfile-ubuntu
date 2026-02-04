@@ -69,6 +69,9 @@ COPY Pipfile.lock .
 
 RUN BUNDLE_VERSION=`cat VERSION`
 
+# Force cache invalidation to ensure we don't use old layers with pipx pyinstaller
+ENV CACHE_BUSTER=20260204
+
 # Install pipx, then use it to install pipenv and pyinstaller
 # All Python-related commands now use the specific /usr/local/bin/python3.12 path
 # and rely on the ENV PATH for pipx to find pipenv/pyinstaller.

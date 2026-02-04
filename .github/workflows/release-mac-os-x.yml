@@ -38,6 +38,12 @@ jobs:
           # Navigate to dist directory
           cd dist
 
+          # Fix code signing for macOS (Ad-hoc signing with entitlements)
+          # This is critical for Apple Silicon (M1/M2) support
+          echo "Applying ad-hoc code signature to bundled binaries..."
+          find appdynamics -name "*.so" -o -name "*.dylib" -o -name "Python" | xargs codesign --force -s - --preserve-metadata=identifier,entitlements
+          codesign --force --deep -s - appdynamics/config-assessment-tool/*/config-assessment-tool
+
           # Determine the name of the PyInstaller created directory (e.g., 'config-assessment-tool')
           # Assumes PyInstaller creates a single top-level directory inside appdynamics/
           BUNDLE_DIR_PATH=$(find appdynamics -maxdepth 1 -mindepth 1 -type d)
