@@ -12,24 +12,31 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Update package lists and install build tools and dependencies for Python
 # Added 'ca-certificates' to the install list for secure downloads
-RUN apt-get update -y && \
-    apt-get install -y --fix-missing --no-install-recommends \
-    build-essential \
-    wget \
-    zlib1g-dev \
-    bzip2 \
-    libbz2-dev \
-    libreadline-dev \
-    sqlite3 \
-    libsqlite3-dev \
-    libssl-dev \
-    tk-dev \
-    libffi-dev \
-    liblzma-dev \
-    ca-certificates \
-    # Clean up apt cache to keep image size down
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Added retry logic to handle transient network failures on package mirrors
+RUN set -e; \
+    for i in 1 2 3; do \
+        echo "Attempt $i to install dependencies..."; \
+        apt-get update -y && \
+        apt-get install -y --fix-missing --no-install-recommends \
+            build-essential \
+            wget \
+            zlib1g-dev \
+            bzip2 \
+            libbz2-dev \
+            libreadline-dev \
+            sqlite3 \
+            libsqlite3-dev \
+            libssl-dev \
+            tk-dev \
+            libffi-dev \
+            liblzma-dev \
+            ca-certificates \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/* \
+        && exit 0 || echo "Attempt $i failed! Retrying in 10s..."; \
+        sleep 10; \
+    done; \
+    exit 1
 
 # Create a symlink for libcrypt.so.2 to point to libcrypt.so.1
 # This addresses the PyInstaller error "Unable to find /usr/local/lib/libcrypt.so.2"
