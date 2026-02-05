@@ -4,9 +4,11 @@ import math
 import os
 import sys
 import time
+import asyncio
 import traceback
 from collections import OrderedDict
 from pathlib import Path
+import importlib.util
 
 import requests
 
@@ -232,6 +234,7 @@ class Engine:
             await self.initControllers()
             await self.process()
             await self.postProcess()
+            await self.runPlugins()
             self.finalize(startTime)
         except Exception as e:
             # catch exceptions here, so we can terminate coroutines before program exit
@@ -242,6 +245,80 @@ class Engine:
             error=False,
         )
 
+
+    async def runPlugins(self):
+        logging.info(f"----------Plugins----------")
+        plugin_dir = "plugins"
+        if not os.path.exists(plugin_dir):
+            logging.info(f"No plugins directory found at {plugin_dir}")
+            return
+
+        # List subdirectories in plugins dir (ignoring files)
+        plugin_folders = [d for d in os.listdir(plugin_dir) if os.path.isdir(os.path.join(plugin_dir, d)) and not d.startswith('__')]
+
+        if not plugin_folders:
+            logging.info("No plugin directories found.")
+            return
+
+        context = {
+            "jobFileName": self.jobFileName,
+            "outputDir": f"output/{self.jobFileName}",
+            "controllerData": self.controllerData
+        }
+
+        for plugin_name in plugin_folders:
+            plugin_path = os.path.join(plugin_dir, plugin_name)
+            main_file = os.path.join(plugin_path, "main.py")
+
+            if not os.path.exists(main_file):
+                logging.debug(f"Plugin directory '{plugin_name}' exists but missing 'main.py'. Skipping.")
+                continue
+
+            try:
+                logging.info(f"Loading plugin: {plugin_name}")
+
+                # Import the module dynamically from the path
+                spec = importlib.util.spec_from_file_location(f"plugins.{plugin_name}.main", main_file)
+                if spec is None or spec.loader is None:
+                     logging.error(f"Could not load spec for plugin {plugin_name}")
+                     continue
+
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[f"plugins.{plugin_name}.main"] = module
+
+                # Temporarily add plugin directory to sys.path to allow internal imports within the plugin
+                sys.path.insert(0, plugin_path)
+                try:
+                    spec.loader.exec_module(module)
+                except SystemExit:
+                    logging.warning(f"Plugin {plugin_name} called sys.exit() during loading. Skipping.")
+                    continue
+                except Exception as e:
+                    logging.error(f"Error loading plugin {plugin_name}: {e}")
+                    continue
+                finally:
+                    # Clean up sys.path
+                    if sys.path[0] == plugin_path:
+                        sys.path.pop(0)
+
+                if hasattr(module, "run_plugin"):
+                    logging.info(f"Executing plugin: {plugin_name}")
+                    try:
+                        # Check if the function is a coroutine (async)
+                        if asyncio.iscoroutinefunction(module.run_plugin):
+                            result = await module.run_plugin(context)
+                        else:
+                            result = module.run_plugin(context)
+
+                        logging.info(f"Plugin {plugin_name} finished. Result: {result}")
+                    except Exception as e:
+                        logging.error(f"Error running plugin {plugin_name}: {e}")
+                        logging.debug(traceback.format_exc())
+                else:
+                    logging.debug(f"Plugin {plugin_name} (in {main_file}) does not have a 'run_plugin' function. Assuming standalone or library plugin.")
+            except Exception as e:
+                logging.error(f"Failed to load plugin {plugin_name}: {e}")
+                logging.debug(traceback.format_exc())
 
     async def initControllers(self) -> ([AppDService], str):
         logging.info(f"Validating Controller Login(s) for Job - {self.jobFileName} ")
