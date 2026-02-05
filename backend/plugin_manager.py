@@ -9,6 +9,10 @@ PLUGIN_DIR = "plugins"
 def cli():
     pass
 
+def is_remote_session():
+    """Check if the script is running in a remote SSH session."""
+    return any(key in os.environ for key in ["SSH_CLIENT", "SSH_TTY", "SSH_CONNECTION"])
+
 @cli.command(name="list")
 def list_plugins():
     """List available plugins"""
@@ -24,7 +28,53 @@ def list_plugins():
         for p in plugins:
             plugin_path = os.path.join(PLUGIN_DIR, p)
             main_file = os.path.join(plugin_path, "main.py")
-            status = "(Ready)" if os.path.exists(main_file) else "(Missing main.py)"
+            readme_file = os.path.join(plugin_path, "README.md")
+
+            if os.path.exists(main_file):
+                if os.path.exists(readme_file):
+                    if is_remote_session():
+                         status = f"(run to view docs: ./cat.sh --plugin docs {p})"
+                    else:
+                        try:
+                            import tempfile
+                            import html
+
+                            temp_dir = tempfile.gettempdir()
+                            html_filename = f"cat_plugin_{p}_readme.html"
+                            html_path = os.path.join(temp_dir, html_filename)
+
+                            with open(readme_file, 'r', encoding='utf-8') as rf:
+                                content = rf.read()
+
+                            content_escaped = html.escape(content)
+                            html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+<title>{p} Documentation</title>
+<style>body {{ font-family: monospace; padding: 20px; }}</style>
+</head>
+<body>
+<h3>Documentation for {p}</h3>
+<hr>
+<pre style="white-space: pre-wrap; word-wrap: break-word;">
+{content_escaped}
+</pre>
+</body>
+</html>"""
+                            with open(html_path, 'w', encoding='utf-8') as wf:
+                                wf.write(html_content)
+
+                            abs_link_path = os.path.abspath(html_path)
+                        except Exception:
+                            abs_link_path = os.path.abspath(readme_file)
+
+                        link = f"\033]8;;file://{abs_link_path}\033\\see docs\033]8;;\033\\"
+                        status = f"({link})"
+                else:
+                    status = "(ready-to-use)"
+            else:
+                status = "(Missing main.py)"
+
             print(f"  - {p} {status}")
 
 @cli.command()
@@ -82,6 +132,29 @@ def start(name, args):
         subprocess.run(cmd, env=env)
     except KeyboardInterrupt:
         print("\nPlugin execution interrupted.")
+
+@cli.command(name="docs")
+@click.argument('name')
+def show_docs(name):
+    """Show documentation for a plugin in the terminal"""
+    plugin_path = os.path.join(PLUGIN_DIR, name)
+    readme_file = os.path.join(plugin_path, "README.md")
+
+    if os.path.exists(readme_file):
+        try:
+            # Try to use rich for better formatting if available, otherwise just print
+            from rich.console import Console
+            from rich.markdown import Markdown
+            console = Console()
+            with open(readme_file, 'r', encoding='utf-8') as f:
+                md = Markdown(f.read())
+            console.print(md)
+        except ImportError:
+            # Fallback to plain text
+            with open(readme_file, 'r', encoding='utf-8') as f:
+                print(f.read())
+    else:
+        print(f"No documentation found for plugin '{name}'.")
 
 if __name__ == "__main__":
     cli()
