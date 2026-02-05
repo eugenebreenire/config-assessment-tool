@@ -3,6 +3,9 @@ name: executable-bundle-centos
 on:
   release:
     types: [ published ]
+  push:
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
 
 permissions:

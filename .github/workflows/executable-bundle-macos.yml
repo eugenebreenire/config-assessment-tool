@@ -1,8 +1,15 @@
 name: executable-bundle-macos
+
 on:
   release:
-    types: [published]
-  workflow_dispatch: # Allows manual triggering
+    types: [ published ]
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-macos:
