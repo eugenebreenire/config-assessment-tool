@@ -1,4 +1,3 @@
-# .github/workflows/release-mac-os-x.yml
 name: executable-bundle-macos
 on:
   release:

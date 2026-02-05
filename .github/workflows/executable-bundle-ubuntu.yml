@@ -1,4 +1,3 @@
-# .github/workflows/linux-release-bundle-ubuntu.yml
 name: executable-bundle-ubuntu
 
 on:
