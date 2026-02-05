@@ -53,7 +53,7 @@ jobs:
           fi
           CHIP=$(uname -m)
           if [ "$CHIP" = "x86_64" ]; then
-            CHIP="x86"
+            CHIP="amd64"
           elif [ "$CHIP" = "arm64" ] || [ "$CHIP" = "aarch64" ]; then
             CHIP="arm"
           fi
