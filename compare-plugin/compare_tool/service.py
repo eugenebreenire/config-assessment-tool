@@ -1,4 +1,17 @@
-# compare_tool/service.py
+"""
+service.py
+----------
+This module contains the core logic for running comparisons.
+
+Purpose:
+- Implements functions for APM, BRUM, and MRUM comparisons.
+- Processes uploaded files and generates comparison results.
+
+Key Functions:
+- `run_comparison`: Handles APM comparisons.
+- `run_comparison_brum`: Handles BRUM comparisons.
+- `run_comparison_mrum`: Handles MRUM comparisons.
+"""
 
 import os
 import logging

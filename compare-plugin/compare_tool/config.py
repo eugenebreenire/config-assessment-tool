@@ -1,5 +1,18 @@
 # compare_tool/config.py
 
+"""
+config.py
+---------
+This module loads and parses the application configuration.
+
+Purpose:
+- Reads the `config.json` file to retrieve application settings.
+- Provides configuration values such as `upload_folder` and `result_folder`.
+
+Key Features:
+- Ensures configuration values are accessible throughout the application.
+"""
+
 import json
 from pathlib import Path
 from typing import Optional, Dict, Any

@@ -1,3 +1,19 @@
+"""
+app.py
+------
+This is the main entry point for the Flask web application.
+
+Purpose:
+- Initializes the Flask app.
+- Sets up routes for the homepage, insights, and file uploads.
+- Configures logging and application folders.
+
+Key Routes:
+- `/`: Renders the homepage.
+- `/insights`: Renders the insights page.
+- `/upload`: Handles file uploads for APM comparisons.
+"""
+
 # webapp/app.py
 import os
 import json
@@ -15,9 +31,11 @@ from compare_tool.service import (
     run_comparison_brum,   # BRUM
     run_comparison_mrum,   # MRUM
 )
+import logging
 
 
 setup_logging()
+logging.info("Logging setup is complete.")
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # points at compare-plugin
 config = load_config(str(BASE_DIR / "config.json"))

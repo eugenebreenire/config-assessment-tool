@@ -1,13 +1,15 @@
 """
-Nite: APM-specific PowerPoint generation logic.
+apm.py
+------
+This module handles the generation of PowerPoint presentations for APM (Application Performance Management) comparisons.
 
-This module is responsible for:
-- Loading comparison + domain-specific APM sheets
-- Populating the APM slides in template.pptx
-- Writing the finished deck to powerpoint_output_path
+Purpose:
+- Creates PowerPoint slides specific to APM comparison results.
+- Uses templates to dynamically populate slides with APM-related data.
 
-It is intentionally focused on APM only; BRUM / MRUM should live in
-their own modules to keep things maintainable.
+Key Features:
+- Reads APM comparison data and generates slides with metrics, charts, and summaries.
+- Saves the generated PowerPoint presentation to the specified output path.
 """
 
 import logging

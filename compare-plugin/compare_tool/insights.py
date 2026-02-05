@@ -1,4 +1,15 @@
-# compare_tool/insights.py
+"""
+insights.py
+-----------
+This module provides functionality for generating insights from comparison data.
+
+Purpose:
+- Implements the `build_comparison_json` function to create JSON data for insights.
+- Interacts with historical data stored in the `history` folder.
+
+Key Features:
+- Generates JSON data for use in the insights page.
+"""
 
 from __future__ import annotations
 

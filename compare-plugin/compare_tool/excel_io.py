@@ -1,3 +1,17 @@
+"""
+excel_io.py
+-----------
+This module provides utility functions for working with Excel files.
+
+Purpose:
+- Handles operations such as saving workbooks and validating data consistency.
+- Ensures formulas in Excel files are recalculated before processing.
+
+Key Features:
+- `save_workbook`: Opens and saves an Excel workbook using `xlwings` to ensure formulas are recalculated.
+- `check_controllers_match`: Validates that two Excel files have matching controller values.
+"""
+
 import logging
 from pathlib import Path
 from typing import Optional

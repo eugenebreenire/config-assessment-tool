@@ -1,19 +1,59 @@
+# Logs and debug files
 /logs
-/output
+debug_analysis.csv
+
+# Input and output directories
 /input
+/output
+
+# IDE-specific files
 /.idea
 *.ipr
 *.iml
 *.iws
+
+# macOS-specific files
 *.DS_Store
-.git-bitbucket
-__pycache__
-compare-plugin/results/*
-compare-plugin/templates/template_old.pptx
-/compare-plugin/uploads
-/compare-plugin/test1.py
-/compare-plugin/test copy.py
-/compare-plugin/test copy 2.py
-debug_analysis.csv
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
 /compare-plugin/venv
-/compare-plugin/input/response.json
+/compare-plugin/.venv
+
+# Temporary or test files
+compare-plugin/test*.py
+/compare-plugin/test copy*.py
+/compare-plugin/uploads
+compare-plugin/uploads/
+compare-plugin/input/response.json
+
+# Test-related files and directories
+/tests/
+*.test.*
+test_*.py
+
+# Old or archived files
+compare-plugin/templates/template_old.pptx
+compare-plugin/archive-refactor/
+
+# Results and generated files
+compare-plugin/results/*
+compare-plugin/results/
+compare-plugin/tests/resources/*.xlsx
+compare-plugin/tests/resources/*.json
+compare-plugin/tests/resources/*.pptx
+
+# Logs directory
+logs/
+
+# Git-specific files
+.git-bitbucket
+
+
+htmlcov/
+.coverage
+.pytest_cache/

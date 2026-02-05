@@ -8,54 +8,28 @@ One-click launcher for the Config Assessment Tool.
 """
 
 import os
-import sys
 import subprocess
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent             # compare-plugin/
-VENV_DIR = ROOT / ".venv"
-REQUIREMENTS = ROOT / "requirements.txt"
-
-
-def get_venv_python() -> Path:
-    if os.name == "nt":  # Windows
-        return VENV_DIR / "Scripts" / "python.exe"
-    else:                # macOS / Linux
-        return VENV_DIR / "bin" / "python"
-
-
-def ensure_venv():
-    if not VENV_DIR.exists():
-        print("Creating virtual environment in .venv ...")
-        subprocess.check_call([sys.executable, "-m", "venv", str(VENV_DIR)])
-    else:
-        print("Using existing virtual environment .venv")
-
-
-def ensure_requirements(venv_python: Path):
-    if REQUIREMENTS.exists():
-        print("Installing dependencies from requirements.txt ...")
-        subprocess.check_call([str(venv_python), "-m", "pip", "install", "--upgrade", "pip"])
-        subprocess.check_call([str(venv_python), "-m", "pip", "install", "-r", str(REQUIREMENTS)])
-    else:
-        print("WARNING: requirements.txt not found; skipping dependency install.")
-
-
 def main():
-    os.chdir(ROOT)
+    # Define the virtual environment path
+    venv_path = Path(".venv")
+    venv_python = venv_path / "bin" / "python"
+    venv_pip = venv_path / "bin" / "pip"
 
-    ensure_venv()
-    venv_python = get_venv_python()
-    if not venv_python.exists():
-        raise SystemExit(f"Could not find venv Python at: {venv_python}")
+    # Step 1: Create the virtual environment if it doesn't exist
+    if not venv_path.exists():
+        print("Creating virtual environment...")
+        subprocess.check_call(["python3", "-m", "venv", str(venv_path)])
 
-    ensure_requirements(venv_python)
+    # Step 2: Install dependencies
+    print("Installing dependencies...")
+    subprocess.check_call([str(venv_pip), "install", "-r", "requirements.txt"])
 
-    # Run the Flask app as a module so `compare_tool` imports work
-    print("Starting Config Assessment Tool on http://127.0.0.1:5000 ...")
+    # Step 3: Run the Flask application
+    print("Starting the application...")
     subprocess.check_call([str(venv_python), "-m", "webapp.app"])
-
 
 if __name__ == "__main__":
     main()

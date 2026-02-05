@@ -1,3 +1,23 @@
+"""
+comparers_brum.py
+-----------------
+This module contains the logic for comparing BRUM (Business Rule Update Management) data.
+
+Purpose:
+- Compares data between the "previous" and "current" BRUM Excel files.
+- Handles sheet-specific comparisons using defined comparer functions.
+- Logs warnings for missing sheets or undefined comparers.
+
+Key Features:
+- Iterates through all sheets in the "current" workbook.
+- Uses `SHEET_COMPARERS_BRUM` to apply sheet-specific comparison logic.
+- Saves the comparison results to the specified output file.
+- Logs detailed information about the comparison process.
+
+Key Functions:
+- `compare_files_other_sheets_brum`: Compares all sheets except "Summary".
+"""
+
 # compare_tool/comparers_brum.py
 
 import logging

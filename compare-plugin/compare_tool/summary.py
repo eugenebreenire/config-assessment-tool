@@ -1,3 +1,17 @@
+"""
+summary.py
+----------
+This module handles the generation and processing of summary data.
+
+Purpose:
+- Extracts and processes summary data from Excel files.
+- Generates summary reports for comparisons.
+
+Key Features:
+- Reads the "Summary" sheet from Excel files.
+- Processes metrics and generates summary data for use in comparisons.
+"""
+
 # compare_tool/summary.py
 
 import logging

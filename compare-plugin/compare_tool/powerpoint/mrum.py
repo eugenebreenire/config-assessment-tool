@@ -1,5 +1,19 @@
 # compare_tool/powerpoint/mrum_mrum.py
 
+"""
+mrum.py
+-------
+This module handles the generation of PowerPoint presentations for MRUM (Management Resource Utilization Management) comparisons.
+
+Purpose:
+- Creates PowerPoint slides specific to MRUM comparison results.
+- Uses templates to dynamically populate slides with MRUM-related data.
+
+Key Features:
+- Reads MRUM comparison data and generates slides with metrics, charts, and summaries.
+- Saves the generated PowerPoint presentation to the specified output path.
+"""
+
 from __future__ import annotations
 
 import logging

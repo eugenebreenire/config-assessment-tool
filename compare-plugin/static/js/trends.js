@@ -1,5 +1,33 @@
 // compare-plugin/static/js/trends.js
 
+/**
+ * trends.js
+ * ---------
+ * This module manages the rendering, layout, and updates of trend-related charts in the application.
+ * It uses Chart.js to create and manipulate charts, ensuring proper responsiveness and layout.
+ *
+ * Purpose:
+ * - Initializes and updates charts for visualizing trends.
+ * - Ensures charts are properly wrapped and styled to avoid layout issues.
+ * - Manages chart instances and prevents overlapping renders.
+ * - Handles dynamic resizing and responsiveness of charts.
+ *
+ * Key Features:
+ * - `ensureTrendBox(canvas, heightPx)`:
+ *   - Ensures that the `<canvas>` element used by Chart.js is wrapped in a fixed-height container.
+ *   - Prevents layout issues caused by Chart.js's responsive behavior.
+ * - Chart Instances:
+ *   - Manages `overallLineChart` and `countsStackedChart` instances to avoid redundant renders.
+ * - Request Sequence Management:
+ *   - Tracks asynchronous requests with `trendsReqSeq` to ensure only the latest data is used for rendering.
+ * - Dynamic Chart Resizing:
+ *   - Adjusts chart dimensions dynamically to fit the UI layout.
+ *
+ * Usage:
+ * - This file is included in the application's frontend to manage trend-related charts.
+ * - Functions are called to initialize, update, and manage charts dynamically based on user interactions or data updates.
+ */
+
 // Hold chart instances and a request sequence to avoid overlapping renders.
 let overallLineChart = null;
 let countsStackedChart = null;

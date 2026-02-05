@@ -16,7 +16,25 @@ red_fill = PatternFill(start_color='FF0000', end_color='FF0000', fill_type='soli
 green_fill = PatternFill(start_color='00FF00', end_color='00FF00', fill_type='solid')
 added_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
 
+"""
+comparers_apm.py
+----------------
+This module contains the logic for comparing APM (Application Performance Management) data.
 
+Purpose:
+- Compares data between the "previous" and "current" APM Excel files.
+- Handles sheet-specific comparisons using defined comparer functions.
+- Logs warnings for missing sheets or undefined comparers.
+
+Key Features:
+- Iterates through all sheets in the "current" workbook.
+- Uses `SHEET_COMPARERS_APM` to apply sheet-specific comparison logic.
+- Saves the comparison results to the specified output file.
+- Logs detailed information about the comparison process.
+
+Key Functions:
+- `compare_files_other_sheets_apm`: Compares all sheets except "Summary".
+"""
 
 def compare_analysis(ws_previous, ws_current):
     try:

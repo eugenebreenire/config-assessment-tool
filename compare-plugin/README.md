@@ -1,41 +1,51 @@
 # CompareResults
 
-The **Configuration Assessment Tool (CAT)** (see: https://github.com/Appdynamics/config-assessment-tool) produces maturity assessment workbooks that score how well your applications are instrumented against field best practices.
+**CompareResults** is a plugin for the [Configuration Assessment Tool (CAT)](https://github.com/Appdynamics/config-assessment-tool). 
 
-**CompareResults** (the `compare-plugin`) piggybacks on CAT output to compare a **Previous** workbook vs a **Current** workbook for **APM**, **BRUM**, and **MRUM**.
+It compares **Previous** and **Current** CAT workbooks for **APM**, **BRUM**, and **MRUM**, providing insights into how your application instrumentation has evolved.
 
-It generates 3 outputs:
-- **Excel comparison workbook** (detailed, low-level comparison)
-- **PowerPoint deck** (high-level summary)
-- **JSON snapshot** (used by the **Insights** view in the UI)
+## Key Features
+CompareResults generates three outputs:
+- **Excel Comparison Workbook**: A detailed, low-level comparison of the two workbooks.
+- **PowerPoint Deck**: A high-level summary of the comparison results.
+- **JSON Snapshot**: Used by the **Insights** view in the UI for further analysis.
 
 --------------------------------------------------------------------------------
 
-## What files can be compared?
+## Supported Files
 
-You can compare CAT workbooks ending with:
+You can compare CAT workbooks with the following naming conventions:
 - `*-MaturityAssessment-apm.xlsx`
 - `*-MaturityAssessment-brum.xlsx`
 - `*-MaturityAssessment-mrum.xlsx`
 
-Important rules:
-- Previous + Current must be from the **same Controller**
-- The Previous report should be dated earlier than the Current report (recommended)
-- Choose the correct domain when uploading (APM/BRUM/MRUM)
+### Important Rules
+- Both the **Previous** and **Current** workbooks must be from the **same Controller**.
+- The **Previous** workbook should be dated earlier than the **Current** workbook (recommended).
+- Ensure you select the correct domain (APM, BRUM, or MRUM) when uploading files.
 
 --------------------------------------------------------------------------------
 
 ## Requirements
 
-Required:
-- Two CAT output workbooks (Previous + Current)
-- Python 3.9+ (recommended; 3.8+ may work depending on dependencies)
+- Python 3.x
+- Dependencies listed in `requirements.txt`
 - Microsoft Excel installed (required for formula recalculation via `xlwings`)
   - macOS: Excel for Mac installed and can open normally
   - Windows: Desktop Excel installed and can open normally
 
 Optional / Notes:
 - Internet access is only needed if your UI loads external assets (e.g., Chart.js via CDN). If you bundle assets locally, internet is not required.
+
+--------------------------------------------------------------------------------
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Appdynamics/config-assessment-tool.git
+   cd config-assessment-tool/compare-plugin
+   ```
 
 --------------------------------------------------------------------------------
 

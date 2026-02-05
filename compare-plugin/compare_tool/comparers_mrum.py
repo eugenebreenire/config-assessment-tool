@@ -1,3 +1,23 @@
+"""
+comparers_mrum.py
+-----------------
+This module contains the logic for comparing MRUM (Metric Rule Update Management) data.
+
+Purpose:
+- Compares data between the "previous" and "current" MRUM Excel files.
+- Handles sheet-specific comparisons using defined comparer functions.
+- Logs warnings for missing sheets or undefined comparers.
+
+Key Features:
+- Iterates through all sheets in the "current" workbook.
+- Uses `SHEET_COMPARERS_MRUM` to apply sheet-specific comparison logic.
+- Saves the comparison results to the specified output file.
+- Logs detailed information about the comparison process.
+
+Key Functions:
+- `compare_files_other_sheets_mrum`: Compares all sheets except "Summary".
+"""
+
 # compare_tool/comparers_mrum.py
 
 import logging

@@ -1,5 +1,19 @@
 # compare_tool/powerpoint/brum_mrum.py
 
+"""
+brum.py
+-------
+This module handles the generation of PowerPoint presentations for BRUM (Business Resource Utilization Management) comparisons.
+
+Purpose:
+- Creates PowerPoint slides specific to BRUM comparison results.
+- Uses templates to dynamically populate slides with BRUM-related data.
+
+Key Features:
+- Reads BRUM comparison data and generates slides with metrics, charts, and summaries.
+- Saves the generated PowerPoint presentation to the specified output path.
+"""
+
 from __future__ import annotations
 
 import logging

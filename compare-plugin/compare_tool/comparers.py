@@ -1,14 +1,21 @@
-# compare_tool/comparers.py
-
 """
-Domain-aware comparison dispatcher.
+comparers.py
+------------
+This module acts as a domain-aware dispatcher for file comparisons.
 
-Keeps your old API:
-    compare_files_other_sheets(prev, curr, out)
+Purpose:
+- Provides a unified API for comparing files across different domains (APM, BRUM, MRUM).
+- Maintains backward compatibility with the old API while supporting domain-specific comparisons.
 
-…while also supporting:
-    compare_files_other_sheets(prev, curr, out, domain="BRUM")
-    compare_files_other_sheets(prev, curr, out, domain="MRUM")
+Key Features:
+- Dispatches to the appropriate domain-specific comparer:
+  - `compare_files_other_sheets_apm` for APM.
+  - `compare_files_other_sheets_brum` for BRUM.
+  - `compare_files_other_sheets_mrum` for MRUM.
+- Logs detailed information about the comparison process.
+
+Key Functions:
+- `compare_files_other_sheets`: Main entry point for file comparisons.
 """
 
 import logging
