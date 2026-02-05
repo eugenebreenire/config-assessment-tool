@@ -99,16 +99,12 @@ case "$1" in
     fi
     ;;
 
-  --plugins)
+  --plugin)
     if [[ "$2" == "list" ]]; then
        export PYTHONPATH="$(pwd):$(pwd)/backend"
        pipenv run python backend/plugin_manager.py list
        exit 0
-    fi
-    ;;
-
-  --plugin)
-    if [[ "$2" == "start" ]]; then
+    elif [[ "$2" == "start" ]]; then
        PLUGIN_NAME="$3"
        if [[ -z "$PLUGIN_NAME" ]]; then
          echo "Error: Plugin name required."
@@ -142,7 +138,7 @@ case "$1" in
     echo "  cat --start [args]         # Starts CAT headless mode from source with [args].  Requires Python 3.12 & pipenv installed".
     echo "  cat --start docker         # Starts CAT UI using Docker. requires Docker. UI accessible at http://localhost:8501"
     echo "  cat --start docker [args]  # Starts CAT headless mode using Docker with [args]. Requires Docker installed."
-    echo "  cat --plugins list         # List available plugins"
+    echo "  cat --plugin list          # List available plugins"
     echo "  cat --plugin start <name>  # Start a specific plugin"
     echo "  cat shutdown               # Stop and remove the running container and FileHandler"
     echo ""

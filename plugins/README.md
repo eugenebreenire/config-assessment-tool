@@ -67,7 +67,7 @@ A plugin can support both modes!
 
 **List available plugins:**
 ```bash
-./cat.sh --plugins list
+./cat.sh --plugin list
 ```
 
 **Run a specific plugin (Standalone Mode):**
