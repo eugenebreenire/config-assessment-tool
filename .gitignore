@@ -51,6 +51,7 @@ compare-plugin/tests/resources/*.pptx
 logs/
 
 # Git-specific files
+.venv
 .git-bitbucket
 
 
