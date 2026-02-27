@@ -15,7 +15,7 @@ Key Functions:
 
 import os
 import logging
-from typing import Dict, Tuple, Optional, Any
+from typing import Dict, Tuple, Optional, Any, List
 from pathlib import Path
 
 from .excel_io import save_workbook, check_controllers_match
@@ -325,7 +325,131 @@ def run_comparison_mrum(
         )
     except Exception as e:
         logger.warning("Failed to build MRUM Insights JSON: %s", e, exc_info=True)
-
+        
     logger.info("MRUM comparison pipeline completed successfully.")
     return output_file_path, powerpoint_output_path
+
+# ---------------------------------------------------------------------------
+# Folder upload helpers (used by webapp.app /upload_folders)
+# ---------------------------------------------------------------------------
+
+from difflib import SequenceMatcher
+
+def _norm_name(name: str) -> str:
+    return "".join(ch.lower() for ch in (name or "") if ch.isalnum())
+
+
+def _domain_score(filename: str, domain: str) -> int:
+    """
+    Score how likely `filename` belongs to `domain` (apm/brum/mrum).
+    Higher is better.
+    """
+    n = _norm_name(filename)
+    d = _norm_name(domain)
+
+    score = 0
+
+    # strong signal
+    if d in n:
+        score += 100
+
+    # helpful keywords (tweak if your exports use different naming)
+    if domain == "apm":
+        for k in ("apm", "application", "controller", "appd"):
+            if k in n:
+                score += 10
+    elif domain == "brum":
+        for k in ("brum", "browser", "rum", "eum"):
+            if k in n:
+                score += 10
+    elif domain == "mrum":
+        for k in ("mrum", "mobile", "rum", "eum"):
+            if k in n:
+                score += 10
+
+    # prefer excel
+    if n.endswith("xlsx") or n.endswith("xls"):
+        score += 5
+
+    return score
+
+
+def _best_candidate(files: List[Any], domain: str) -> Optional[Any]:
+    candidates = [f for f in files if getattr(f, "filename", None)]
+    if not candidates:
+        return None
+
+    candidates.sort(
+        key=lambda f: (_domain_score(f.filename, domain), len(f.filename or "")),
+        reverse=True,
+    )
+    return candidates[0]
+
+def find_best_matching_files(
+    previous_files: List[Any],
+    current_files: List[Any],
+) -> Dict[str, Tuple[Optional[Any], Optional[Any]]]:
+
+    """
+    Determine best matching file pairs for each domain based on filenames.
+    Returns:
+      {
+        "apm":  (prev_file, curr_file),
+        "brum": (prev_file, curr_file),
+        "mrum": (prev_file, curr_file),
+      }
+    """
+    matches: Dict[str, Tuple[Optional[Any], Optional[Any]]] = {}
+
+    for domain in ("apm", "brum", "mrum"):
+        prev_best = _best_candidate(previous_files, domain)
+        curr_best = _best_candidate(current_files, domain)
+
+        # If both exist, refine current match by similarity to prev name
+        if prev_best and curr_best:
+            prev_key = _norm_name(prev_best.filename)
+            best = curr_best
+            best_sim = SequenceMatcher(None, prev_key, _norm_name(curr_best.filename)).ratio()
+
+            for cf in current_files:
+                if not getattr(cf, "filename", None):
+                    continue
+                sim = SequenceMatcher(None, prev_key, _norm_name(cf.filename)).ratio()
+                if sim > best_sim:
+                    best_sim = sim
+                    best = cf
+
+            curr_best = best
+
+        matches[domain] = (prev_best, curr_best)
+
+    return matches
+
+
+def save_matched_files(
+    matches: Dict[str, Tuple[Optional[Any], Optional[Any]]],
+    upload_folder: str,
+    data_type: str,
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Save the matched prev/curr files for `data_type` ('apm'|'brum'|'mrum')
+    into upload_folder and return (previous_path, current_path).
+    """
+    data_type = (data_type or "").lower()
+    if data_type not in ("apm", "brum", "mrum"):
+        return None, None
+
+    prev_file, curr_file = matches.get(data_type, (None, None))
+    if not prev_file or not curr_file:
+        return None, None
+
+    os.makedirs(upload_folder, exist_ok=True)
+
+    prev_path = os.path.join(upload_folder, f"previous_{data_type}.xlsx")
+    curr_path = os.path.join(upload_folder, f"current_{data_type}.xlsx")
+
+    prev_file.save(prev_path)
+    curr_file.save(curr_path)
+
+    return prev_path, curr_path
 
