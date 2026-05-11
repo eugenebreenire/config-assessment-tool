@@ -100,8 +100,80 @@ class HealthRulesAndAlertingAPM(JobStepBase):
                         )
                         if healthRuleDiff != {}:
                             defaultHealthRulesModified += 1
+                            logger.debug(f'[{application["name"]}] Default health rule MODIFIED: "{hrName}"')
+                            # values_changed: field exists in both but value differs
+                            for path, change in healthRuleDiff.get("values_changed", {}).items():
+                                logger.debug(
+                                    f'  [CHANGED]  {path}\n'
+                                    f'             expected (default): {change["old_value"]}\n'
+                                    f'             actual   (API):     {change["new_value"]}'
+                                )
+                            # type_changes: same field, different Python type
+                            for path, change in healthRuleDiff.get("type_changes", {}).items():
+                                logger.debug(
+                                    f'  [TYPE CHG] {path}\n'
+                                    f'             expected (default): {change["old_value"]} ({change["old_type"].__name__})\n'
+                                    f'             actual   (API):     {change["new_value"]} ({change["new_type"].__name__})'
+                                )
+                            # dictionary_item_added: fields present in API but not in default
+                            for path in healthRuleDiff.get("dictionary_item_added", set()):
+                                logger.debug(
+                                    f'  [ADDED]    {path} — present in API response but NOT in default'
+                                )
+                            # dictionary_item_removed: fields in default but missing from API
+                            for path in healthRuleDiff.get("dictionary_item_removed", set()):
+                                logger.debug(
+                                    f'  [REMOVED]  {path} — expected in default but MISSING from API response'
+                                )
+                            # iterable_item_added / removed — drill into dict items to show field-level diff
+                            for path, val in healthRuleDiff.get("iterable_item_added", {}).items():
+                                if isinstance(val, dict):
+                                    label = val.get("name") or val.get("shortName") or str(val)[:60]
+                                    logger.debug(f'  [LIST+]    {path} — item in API but NOT in default: "{label}"')
+                                else:
+                                    logger.debug(f'  [LIST+]    {path} — item in API but NOT in default: {val}')
+                            for path, val in healthRuleDiff.get("iterable_item_removed", {}).items():
+                                if isinstance(val, dict):
+                                    label = val.get("name") or val.get("shortName") or str(val)[:60]
+                                    logger.debug(f'  [LIST-]    {path} — item in default but NOT in API: "{label}"')
+                                else:
+                                    logger.debug(f'  [LIST-]    {path} — item in default but NOT in API: {val}')
+                            # iterable_item_changed — both sides are dicts; drill in to show only differing keys
+                            for path, change in healthRuleDiff.get("iterable_item_changed", {}).items():
+                                old_val = change.get("old_value", {})
+                                new_val = change.get("new_value", {})
+                                if isinstance(old_val, dict) and isinstance(new_val, dict):
+                                    inner_diff = DeepDiff(old_val, new_val, ignore_order=True)
+                                    label = old_val.get("name") or old_val.get("shortName") or path
+                                    logger.debug(f'  [LIST CHG] {path} (condition: "{label}")')
+                                    for ipath, ichange in inner_diff.get("values_changed", {}).items():
+                                        logger.debug(
+                                            f'    [CHANGED]  {ipath}\n'
+                                            f'               expected (default): {ichange["old_value"]}\n'
+                                            f'               actual   (API):     {ichange["new_value"]}'
+                                        )
+                                    for ipath in inner_diff.get("dictionary_item_added", set()):
+                                        logger.debug(f'    [ADDED]    {ipath} — extra field in API (not in default)')
+                                    for ipath in inner_diff.get("dictionary_item_removed", set()):
+                                        logger.debug(f'    [REMOVED]  {ipath} — missing from API response')
+                                else:
+                                    logger.debug(
+                                        f'  [LIST CHG] {path}\n'
+                                        f'             expected (default): {old_val}\n'
+                                        f'             actual   (API):     {new_val}'
+                                    )
+                        else:
+                            logger.debug(
+                                f'[{application["name"]}] Default health rule unchanged: "{hrName}"'
+                            )
                     else:
                         defaultHealthRulesModified += 1
+                        logger.debug(
+                            f'[{application["name"]}] Default health rule MISSING (not found in application): "{hrName}"'
+                        )
+                logger.debug(
+                    f'[{application["name"]}] Total default health rules modified/missing: {defaultHealthRulesModified} / {len(defaultHealthRules)}'
+                )
                 analysisDataEvaluatedMetrics["numberOfDefaultHealthRulesModified"] = defaultHealthRulesModified
 
                 # numberOfActionsBoundToEnabledPolicies

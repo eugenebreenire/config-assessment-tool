@@ -4,6 +4,7 @@
     "enabled": true,
     "useDataFromLastNMinutes": 30,
     "waitTimeAfterViolation": 30,
+    "splitEventsByMetrics": false,
     "scheduleName": "Always",
     "affects": {
       "affectedEntityType": "BUSINESS_TRANSACTION_PERFORMANCE",
@@ -20,6 +21,8 @@
             "name": "Average Response Time (ms) Baseline Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -30,7 +33,8 @@
                 "baselineName": "Default Baseline",
                 "compareValue": 3,
                 "baselineUnit": "STANDARD_DEVIATIONS"
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -39,6 +43,8 @@
             "name": "Calls per Minute Condition",
             "shortName": "B",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -47,7 +53,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 50
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -56,6 +63,8 @@
             "name": "Calls per Minute Condition",
             "shortName": "E",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -64,7 +73,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 50
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -73,6 +83,8 @@
             "name": "Errors per Minute Condition",
             "shortName": "D",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "SUM",
@@ -81,7 +93,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 10
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -90,6 +103,8 @@
             "name": "Errors per Minute Baseline Condition",
             "shortName": "C",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -100,7 +115,8 @@
                 "baselineName": "Default Baseline",
                 "compareValue": 3,
                 "baselineUnit": "STANDARD_DEVIATIONS"
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -119,6 +135,8 @@
             "name": "Average Response Time (ms) Baseline Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -129,7 +147,8 @@
                 "baselineName": "Default Baseline",
                 "compareValue": 2,
                 "baselineUnit": "STANDARD_DEVIATIONS"
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -138,6 +157,8 @@
             "name": "Calls per Minute Condition",
             "shortName": "B",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -146,7 +167,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 100
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -155,6 +177,8 @@
             "name": "Calls per Minute Condition",
             "shortName": "E",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -163,7 +187,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 50
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -172,6 +197,8 @@
             "name": "Errors per Minute Condition",
             "shortName": "D",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "SUM",
@@ -180,7 +207,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 5
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -189,6 +217,8 @@
             "name": "Errors per Minute Baseline Condition",
             "shortName": "C",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -199,7 +229,8 @@
                 "baselineName": "Default Baseline",
                 "compareValue": 2,
                 "baselineUnit": "STANDARD_DEVIATIONS"
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -217,6 +248,7 @@
     "enabled": true,
     "useDataFromLastNMinutes": 20,
     "waitTimeAfterViolation": 30,
+    "splitEventsByMetrics": false,
     "scheduleName": "Always",
     "affects": {
       "affectedEntityType": "TIER_NODE_HARDWARE",
@@ -237,6 +269,8 @@
             "name": "Hardware Resources|CPU|%Busy Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -245,7 +279,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 90
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": true,
             "minimumTriggers": 16
@@ -261,6 +296,8 @@
             "name": "Hardware Resources|CPU|%Busy Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -269,7 +306,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 75
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": true,
             "minimumTriggers": 16
@@ -284,6 +322,7 @@
     "enabled": true,
     "useDataFromLastNMinutes": 30,
     "waitTimeAfterViolation": 30,
+    "splitEventsByMetrics": false,
     "scheduleName": "Always",
     "affects": {
       "affectedEntityType": "TIER_NODE_HARDWARE",
@@ -304,6 +343,8 @@
             "name": "Hardware Resources|Memory|Used % Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -312,7 +353,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 90
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -328,6 +370,8 @@
             "name": "Hardware Resources|Memory|Used % Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -336,7 +380,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 75
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -351,6 +396,7 @@
     "enabled": true,
     "useDataFromLastNMinutes": 30,
     "waitTimeAfterViolation": 30,
+    "splitEventsByMetrics": false,
     "scheduleName": "Always",
     "affects": {
       "affectedEntityType": "TIER_NODE_HARDWARE",
@@ -371,6 +417,8 @@
             "name": "JVM|Memory:Heap|Used % Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -379,7 +427,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 90
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -395,6 +444,8 @@
             "name": "JVM|Memory:Heap|Used % Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -403,7 +454,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 75
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -418,6 +470,7 @@
     "enabled": true,
     "useDataFromLastNMinutes": 30,
     "waitTimeAfterViolation": 30,
+    "splitEventsByMetrics": false,
     "scheduleName": "Always",
     "affects": {
       "affectedEntityType": "TIER_NODE_HARDWARE",
@@ -438,6 +491,8 @@
             "name": "JVM|Garbage Collection|GC Time Spent Per Min (ms) Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -446,7 +501,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 45000
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -462,6 +518,8 @@
             "name": "JVM|Garbage Collection|GC Time Spent Per Min (ms) Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -470,7 +528,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 30000
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -485,6 +544,7 @@
     "enabled": true,
     "useDataFromLastNMinutes": 30,
     "waitTimeAfterViolation": 30,
+    "splitEventsByMetrics": false,
     "scheduleName": "Always",
     "affects": {
       "affectedEntityType": "TIER_NODE_HARDWARE",
@@ -505,6 +565,8 @@
             "name": "CLR|Garbage Collection|GC Time Spent (%) Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -513,7 +575,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 75
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -529,6 +592,8 @@
             "name": "CLR|Garbage Collection|GC Time Spent (%) Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "SINGLE_METRIC",
               "metricAggregateFunction": "VALUE",
@@ -537,7 +602,8 @@
                 "metricEvalDetailType": "SPECIFIC_TYPE",
                 "compareCondition": "GREATER_THAN_SPECIFIC_VALUE",
                 "compareValue": 50
-              }
+              },
+              "inputMetricText": false
             },
             "triggerEnabled": false,
             "minimumTriggers": 0
@@ -552,6 +618,7 @@
     "enabled": false,
     "useDataFromLastNMinutes": 30,
     "waitTimeAfterViolation": 30,
+    "splitEventsByMetrics": false,
     "scheduleName": "Always",
     "affects": {
       "affectedEntityType": "ADVANCED_NETWORK",
@@ -572,6 +639,8 @@
             "name": "Packet Drop Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "METRIC_EXPRESSION",
               "metricExpression": "({Packets Dropped Per Sec} / {Packets Received Per Sec}) * 100",
@@ -607,6 +676,8 @@
             "name": "Packet Drop Condition",
             "shortName": "A",
             "evaluateToTrueOnNoData": false,
+            "violationStatusOnNoData": "UNKNOWN",
+            "wildcardMetricMatchType": "DEFAULT_ALL_METRIC_PATH",
             "evalDetail": {
               "evalDetailType": "METRIC_EXPRESSION",
               "metricExpression": "({Packets Dropped Per Sec} / {Packets Received Per Sec}) * 100",
