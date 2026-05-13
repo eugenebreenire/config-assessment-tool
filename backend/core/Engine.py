@@ -112,7 +112,7 @@ class Engine:
                 logger.warning(f"Unable to get latest tag from https://api.github.com/repos/appdynamics/config-assessment-tool/tags")
             else:
                 latestTag = json.loads(response.text)[0]["name"]
-                if latestTag != self.codebaseVersion:
+                if latestTag.lstrip("v") != self.codebaseVersion.lstrip("v"):
                     logger.warning(f"You are using an outdated version of the software. Current {self.codebaseVersion} Latest {latestTag}")
                     logger.warning("You can get the latest version from https://github.com/Appdynamics/config-assessment-tool/releases")
         except requests.exceptions.RequestException:
